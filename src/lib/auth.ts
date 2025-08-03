@@ -3,9 +3,9 @@ import SpotifyProvider from "next-auth/providers/spotify"
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter"
 import { MongoClient } from "mongodb"
 import { createDefaultUserPreferences } from "./db"
+import getClientPromise from "./db"
 
-const client = new MongoClient(process.env.MONGODB_URI!)
-const clientPromise = Promise.resolve(client)
+const clientPromise = getClientPromise()
 
 // Define scopes for Spotify API access
 const spotifyScopes = [

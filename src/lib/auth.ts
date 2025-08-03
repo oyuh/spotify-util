@@ -7,6 +7,40 @@ import getClientPromise from "./db"
 
 const clientPromise = getClientPromise()
 
+// Function to refresh the access token
+async function refreshAccessToken(token: any) {
+  try {
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: token.refreshToken,
+        client_id: process.env.SPOTIFY_CLIENT_ID!,
+        client_secret: process.env.SPOTIFY_CLIENT_SECRET!,
+      }),
+      method: 'POST',
+    })
+
+    const refreshedTokens = await response.json()
+
+    if (!response.ok) {
+      throw refreshedTokens
+    }
+
+    return {
+      ...token,
+      accessToken: refreshedTokens.access_token,
+      expiresAt: Math.floor(Date.now() / 1000 + refreshedTokens.expires_in),
+      refreshToken: refreshedTokens.refresh_token ?? token.refreshToken, // Fall back to old refresh token
+    }
+  } catch (error) {
+    console.log(error)
+    throw error
+  }
+}
+
 // Define scopes for Spotify API access
 const spotifyScopes = [
   "user-read-email",
@@ -46,6 +80,20 @@ export const authOptions = {
         token.userId = user.id
       }
 
+      // Check if token is expired and refresh it
+      if (token.expiresAt && Date.now() > (token.expiresAt as number) * 1000) {
+        console.log('Token expired, refreshing...')
+        try {
+          const refreshedToken = await refreshAccessToken(token)
+          console.log('Token refreshed successfully')
+          return refreshedToken
+        } catch (error) {
+          console.error('Error refreshing token:', error)
+          // Return the old token, but user will need to re-authenticate
+          return { ...token, error: "RefreshAccessTokenError" }
+        }
+      }
+
       return token
     },
     async session({ session, token }) {
@@ -83,36 +131,6 @@ export const authOptions = {
   },
   debug: true, // Enable debug logs temporarily
   trustHost: true, // Trust the host for custom domains
-  cookies: {
-    sessionToken: {
-      name: process.env.NODE_ENV === "production" ? "__Secure-next-auth.session-token" : "next-auth.session-token",
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-        domain: process.env.NODE_ENV === "production" ? ".musicutil.online" : undefined,
-      },
-    },
-    callbackUrl: {
-      name: process.env.NODE_ENV === "production" ? "__Secure-next-auth.callback-url" : "next-auth.callback-url",
-      options: {
-        sameSite: "lax",
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-        domain: process.env.NODE_ENV === "production" ? ".musicutil.online" : undefined,
-      },
-    },
-    csrfToken: {
-      name: process.env.NODE_ENV === "production" ? "__Host-next-auth.csrf-token" : "next-auth.csrf-token",
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-      },
-    },
-  },
 }
 
 export default NextAuth(authOptions)

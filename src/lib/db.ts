@@ -15,19 +15,13 @@ function initializeClient() {
 
   const uri = process.env.MONGODB_URI
   const options = {
-    // Add proper SSL and connection options for Vercel/serverless
+    // Basic connection options for serverless environments
     maxPoolSize: 10,
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: 45000,
     family: 4, // Use IPv4, skip trying IPv6
-    // SSL options for production
-    ...(process.env.NODE_ENV === "production" && {
-      ssl: true,
-      sslValidate: false, // Disable SSL validation to fix the TLS error
-      tls: true,
-      tlsAllowInvalidCertificates: true,
-      tlsAllowInvalidHostnames: true,
-    })
+    retryWrites: true,
+    w: 'majority' as const
   }
 
   if (process.env.NODE_ENV === "development") {

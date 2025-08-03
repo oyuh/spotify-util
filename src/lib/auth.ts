@@ -74,7 +74,6 @@ export const authOptions = {
       return true
     },
   },
-  debug: process.env.NODE_ENV === "development",
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
     signIn: "/login",
@@ -82,6 +81,8 @@ export const authOptions = {
   session: {
     strategy: "jwt" as const,
   },
+  debug: true, // Enable debug logs temporarily
+  trustHost: true, // Trust the host for custom domains
 }
 
 export default NextAuth(authOptions)

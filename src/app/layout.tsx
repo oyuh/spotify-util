@@ -44,7 +44,7 @@ export default function RootLayout({
       >
         <Providers>
           <Navigation />
-          <main className="pt-16">
+          <main>
             {children}
           </main>
           <Toaster />

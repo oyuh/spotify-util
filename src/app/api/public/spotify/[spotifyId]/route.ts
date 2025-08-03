@@ -75,6 +75,10 @@ export async function GET(
         return NextResponse.json({
           ...filteredTrack,
           settings: userPrefs.displaySettings,
+          preferences: {
+            displaySettings: userPrefs.displaySettings,
+            publicDisplaySettings: userPrefs.publicDisplaySettings
+          }
         })
       }
     } else if (spotifyData && type === "recent") {
@@ -92,10 +96,20 @@ export async function GET(
       return NextResponse.json({
         items: filteredTracks,
         settings: userPrefs.displaySettings,
+        preferences: {
+          displaySettings: userPrefs.displaySettings,
+          publicDisplaySettings: userPrefs.publicDisplaySettings
+        }
       })
     }
 
-    return NextResponse.json({ data: null })
+    return NextResponse.json({
+      data: null,
+      preferences: {
+        displaySettings: userPrefs.displaySettings,
+        publicDisplaySettings: userPrefs.publicDisplaySettings
+      }
+    })
   } catch (error) {
     console.error("Error fetching public display data:", error)
     return NextResponse.json(

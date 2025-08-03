@@ -68,7 +68,8 @@ export interface UserPreferences {
     hideSpotifyId: boolean
   }
   displaySettings: {
-    theme: string
+    displayTheme: string
+    streamTheme: string
     customCSS?: string
     streamerMode: boolean
     position?: {
@@ -164,7 +165,8 @@ export async function createDefaultUserPreferences(userId: string, spotifyId: st
       hideSpotifyId: true,
     },
     displaySettings: {
-      theme: "default",
+      displayTheme: "default",
+      streamTheme: "transparent",
       streamerMode: false,
     },
     createdAt: new Date(),

@@ -119,4 +119,44 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Enhanced backdrop blur support */
+  .backdrop-blur-md {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .backdrop-blur-xl {
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  /* Navigation improvements */
+  nav {
+    will-change: transform;
+    /* Ensure proper layering */
+    isolation: isolate;
+  }
+
+  /* Enhanced shadow effects */
+  .shadow-xl {
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  }
+
+  /* Smooth transitions for theme changes */
+  .theme-transition,
+  * {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  /* Prevent horizontal overflow on small screens */
+  body, html {
+    overflow-x: hidden;
+  }
+
+  /* Improved gradient text support */
+  .bg-clip-text {
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
 }

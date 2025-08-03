@@ -31,6 +31,8 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Copy, Settings, Eye, EyeOff, Shuffle, Link as LinkIcon, Palette, Monitor } from 'lucide-react'
 import { toast } from 'sonner'
+import ThemeSelector from '@/components/ThemeSelector'
+import { displayThemes, streamThemes } from '@/lib/themes'
 
 interface UserPreferences {
   publicDisplaySettings: {
@@ -49,7 +51,8 @@ interface UserPreferences {
     hideSpotifyId: boolean
   }
   displaySettings: {
-    theme: string
+    displayTheme: string
+    streamTheme: string
     customCSS?: string
     streamerMode: boolean
     position?: {
@@ -83,7 +86,8 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
       hideSpotifyId: false
     },
     displaySettings: {
-      theme: 'default',
+      displayTheme: 'default',
+      streamTheme: 'transparent',
       customCSS: '',
       streamerMode: false
     }
@@ -115,6 +119,12 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
 
   const savePreferences = async () => {
     try {
+      // Validate privacy settings
+      if (!preferences.privacySettings.isPublic && !preferences.privacySettings.customSlug) {
+        toast.error('Private mode requires a custom slug. Please generate one first.')
+        return
+      }
+
       setIsSaving(true)
       console.log('Client - About to save preferences:', JSON.stringify(preferences, null, 2))
 
@@ -174,20 +184,44 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
 
   const getDisplayUrl = () => {
     const baseUrl = window.location.origin
-    const identifier = preferences.privacySettings.customSlug || session?.spotifyId
-    return `${baseUrl}/api/display/${identifier}`
+    if (!preferences.privacySettings.isPublic && preferences.privacySettings.customSlug) {
+      // Private mode: use public slug endpoint
+      return `${baseUrl}/api/public/display/${preferences.privacySettings.customSlug}`
+    } else if (preferences.privacySettings.customSlug) {
+      // Public mode with custom slug: still use public endpoint for consistency
+      return `${baseUrl}/api/public/display/${preferences.privacySettings.customSlug}`
+    } else {
+      // Public mode without custom slug: use regular endpoint
+      return `${baseUrl}/api/display/${session?.spotifyId}`
+    }
   }
 
   const getStreamUrl = () => {
     const baseUrl = window.location.origin
-    const identifier = preferences.privacySettings.customSlug || session?.spotifyId
-    return `${baseUrl}/api/stream/${identifier}`
+    if (!preferences.privacySettings.isPublic && preferences.privacySettings.customSlug) {
+      // Private mode: use public slug endpoint
+      return `${baseUrl}/api/public/stream/${preferences.privacySettings.customSlug}`
+    } else if (preferences.privacySettings.customSlug) {
+      // Public mode with custom slug: still use public endpoint for consistency
+      return `${baseUrl}/api/public/stream/${preferences.privacySettings.customSlug}`
+    } else {
+      // Public mode without custom slug: use regular endpoint
+      return `${baseUrl}/api/stream/${session?.spotifyId}`
+    }
   }
 
   const getPublicDisplayUrl = () => {
     const baseUrl = window.location.origin
-    const identifier = preferences.privacySettings.customSlug || session?.spotifyId
-    return `${baseUrl}/display/${identifier}`
+    if (!preferences.privacySettings.isPublic && preferences.privacySettings.customSlug) {
+      // Private mode: use slug display page
+      return `${baseUrl}/display/${preferences.privacySettings.customSlug}`
+    } else if (preferences.privacySettings.customSlug) {
+      // Public mode with custom slug: still use slug for consistency
+      return `${baseUrl}/display/${preferences.privacySettings.customSlug}`
+    } else {
+      // Public mode without custom slug: use regular display page
+      return `${baseUrl}/display/${session?.spotifyId}`
+    }
   }
 
   if (!session) {
@@ -382,44 +416,60 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
                   Privacy Settings
                 </CardTitle>
                 <CardDescription>
-                  Control who can see your music data
+                  Control how your music data can be accessed
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="public-display">Public Display</Label>
+                    <Label htmlFor="private-mode">Private Mode</Label>
                     <p className="text-sm text-muted-foreground">
-                      Allow others to view your currently playing track
+                      When enabled, your display is only accessible via the generated slug URL
                     </p>
                   </div>
                   <Switch
-                    id="public-display"
-                    checked={preferences.privacySettings.isPublic}
+                    id="private-mode"
+                    checked={!preferences.privacySettings.isPublic}
                     onCheckedChange={(checked) =>
                       setPreferences(prev => ({
                         ...prev,
                         privacySettings: {
                           ...prev.privacySettings,
-                          isPublic: checked
+                          isPublic: !checked
                         }
                       }))
                     }
                   />
                 </div>
 
-                <Separator />
+                {!preferences.privacySettings.isPublic && (
+                  <>
+                    <Separator />
+                    <div className="space-y-4 p-4 bg-muted/50 rounded-lg border">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                        <span className="text-sm font-medium text-orange-600">Private Mode Active</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Your display is only accessible via the custom slug URL below. Your regular Spotify ID link will not work.
+                      </p>
+                    </div>
+                  </>
+                )}
 
                 <div className="space-y-4">
                   <div>
-                    <Label>Custom Private Link</Label>
+                    <Label>Custom Slug {!preferences.privacySettings.isPublic && <span className="text-red-500">*</span>}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Create a custom URL that's not tied to your Spotify ID
+                      {preferences.privacySettings.isPublic
+                        ? "Optional custom URL that works alongside your regular link"
+                        : "Required for private mode - this is the only way to access your display"
+                      }
                     </p>
                   </div>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Custom slug (optional)"
+                      placeholder={!preferences.privacySettings.isPublic ? "Required for private mode" : "Custom slug (optional)"}
                       value={preferences.privacySettings.customSlug || ''}
                       onChange={(e) =>
                         setPreferences(prev => ({
@@ -430,6 +480,7 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
                           }
                         }))
                       }
+                      className={!preferences.privacySettings.isPublic && !preferences.privacySettings.customSlug ? "border-red-300" : ""}
                     />
                     <Button variant="outline" onClick={generateCustomSlug}>
                       <Shuffle className="w-4 h-4 mr-2" />
@@ -437,9 +488,22 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
                     </Button>
                   </div>
                   {preferences.privacySettings.customSlug && (
-                    <Badge variant="secondary" className="break-all">
-                      Using custom slug: {preferences.privacySettings.customSlug}
-                    </Badge>
+                    <div className="space-y-2">
+                      <Badge variant={preferences.privacySettings.isPublic ? "secondary" : "destructive"} className="break-all">
+                        {preferences.privacySettings.isPublic ? "Custom slug: " : "Private URL: "}
+                        {preferences.privacySettings.customSlug}
+                      </Badge>
+                      {!preferences.privacySettings.isPublic && (
+                        <p className="text-xs text-muted-foreground">
+                          Share this slug carefully - it's the only way to access your display
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {!preferences.privacySettings.isPublic && !preferences.privacySettings.customSlug && (
+                    <p className="text-sm text-red-600">
+                      ⚠️ You must generate a custom slug to use private mode
+                    </p>
                   )}
                 </div>
               </CardContent>
@@ -520,13 +584,90 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Palette className="w-4 h-4" />
-                  Custom Styling
+                  Themes & Styling
                 </CardTitle>
                 <CardDescription>
-                  Customize the appearance of your public display
+                  Customize the appearance of your public display and streaming overlay
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
+                {/* Display Theme Selection */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Display Theme</Label>
+                  <p className="text-xs text-muted-foreground">Theme for public display pages</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {displayThemes.slice(0, 6).map((theme) => (
+                      <div
+                        key={theme.id}
+                        className={`cursor-pointer p-3 rounded-lg border transition-all hover:scale-105 ${
+                          preferences.displaySettings.displayTheme === theme.id
+                            ? 'ring-2 ring-primary border-primary'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                        onClick={() =>
+                          setPreferences(prev => ({
+                            ...prev,
+                            displaySettings: {
+                              ...prev.displaySettings,
+                              displayTheme: theme.id
+                            }
+                          }))
+                        }
+                      >
+                        <div
+                          className="w-full h-8 rounded mb-2 border"
+                          style={{ background: theme.preview }}
+                        ></div>
+                        <div className="text-xs font-medium">{theme.name}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <ThemeSelector>
+                    <Button variant="outline" size="sm" className="w-full">
+                      <Palette className="w-4 h-4 mr-2" />
+                      Browse All Display Themes
+                    </Button>
+                  </ThemeSelector>
+                </div>
+
+                <Separator />
+
+                {/* Stream Theme Selection */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Stream Theme</Label>
+                  <p className="text-xs text-muted-foreground">Theme for streaming overlays and OBS</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {streamThemes.map((theme) => (
+                      <div
+                        key={theme.id}
+                        className={`cursor-pointer p-3 rounded-lg border transition-all hover:scale-105 ${
+                          preferences.displaySettings.streamTheme === theme.id
+                            ? 'ring-2 ring-primary border-primary'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                        onClick={() =>
+                          setPreferences(prev => ({
+                            ...prev,
+                            displaySettings: {
+                              ...prev.displaySettings,
+                              streamTheme: theme.id
+                            }
+                          }))
+                        }
+                      >
+                        <div
+                          className="w-full h-8 rounded mb-2 border"
+                          style={{ background: theme.preview }}
+                        ></div>
+                        <div className="text-xs font-medium">{theme.name}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Streaming Mode Toggle */}
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="streaming-mode">Streaming Mode</Label>
@@ -549,11 +690,15 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
                   />
                 </div>
 
+                {/* Custom CSS */}
                 {isFullVersion && (
                   <>
                     <Separator />
                     <div className="space-y-2">
                       <Label htmlFor="custom-css">Custom CSS</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Add custom styles to override theme defaults (advanced users only)
+                      </p>
                       <textarea
                         id="custom-css"
                         className="w-full h-32 p-3 text-sm font-mono border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring"

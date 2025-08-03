@@ -61,9 +61,12 @@ export async function GET(
     // Find user by custom slug
     const userPrefs = await getUserBySlug(slug)
 
-    if (!userPrefs || !userPrefs.privacySettings.isPublic) {
+    if (!userPrefs) {
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
+
+    // Note: We don't check isPublic here because slug access should work regardless
+    // The privacy setting controls whether the regular Spotify ID works, not the slug
 
     console.log('Public Stream API - Found public user:', userPrefs.userId)
 

@@ -79,7 +79,21 @@ export async function GET(
 
     console.log('Stream API - Found account:', account ? 'Yes' : 'No')
 
-    if (!account || !account.access_token) {
+    // If we found an account, check privacy settings
+    if (account) {
+      console.log('Stream API - Checking privacy settings for userId:', account.userId)
+      const userPrefs = await getUserPreferences(account.userId)
+      console.log('Stream API - User preferences found:', userPrefs ? 'Yes' : 'No')
+      console.log('Stream API - Privacy settings:', userPrefs?.privacySettings)
+
+      // If user has privacy enabled (isPublic = false), they can only be accessed via slug
+      if (userPrefs && !userPrefs.privacySettings.isPublic) {
+        console.log('🔒 STREAM PRIVACY CHECK: User has privacy enabled, access denied via Spotify ID')
+        return NextResponse.json({ error: "Not found" }, { status: 404 })
+      } else {
+        console.log('✅ STREAM PRIVACY CHECK: User is public or no preferences found, allowing access')
+      }
+    }    if (!account || !account.access_token) {
       return NextResponse.json({
         name: '',
         artists: [],

@@ -73,7 +73,21 @@ export async function GET(
       })
     }
 
-    // Let's also check what accounts exist
+    // If we found an account, check privacy settings
+    if (account) {
+      console.log('Checking privacy settings for userId:', account.userId)
+      const userPrefs = await getUserPreferences(account.userId)
+      console.log('User preferences found:', userPrefs ? 'Yes' : 'No')
+      console.log('Privacy settings:', userPrefs?.privacySettings)
+
+      // If user has privacy enabled (isPublic = false), they can only be accessed via slug
+      if (userPrefs && !userPrefs.privacySettings.isPublic) {
+        console.log('🔒 PRIVACY CHECK: User has privacy enabled, access denied via Spotify ID')
+        return NextResponse.json({ error: "Not found" }, { status: 404 })
+      } else {
+        console.log('✅ PRIVACY CHECK: User is public or no preferences found, allowing access')
+      }
+    }    // Let's also check what accounts exist
     if (!account) {
       console.log('Still not found, checking all spotify accounts...')
       const allSpotifyAccounts = await accounts.find({ provider: "spotify" }).toArray()
@@ -94,6 +108,7 @@ export async function GET(
         artists: [],
         album: { name: '', images: [] },
         is_playing: false,
+        recent_tracks: [],
         error: 'No access token available'
       })
     }
@@ -109,11 +124,56 @@ export async function GET(
 
       if (!currentTrack || !currentTrack.item) {
         console.log('No current track or item')
+
+        // Even when no track is playing, check if user wants recent tracks shown
+        let sessionUserId = account.userId
+
+        // Check if we can find the actual session userId by looking for a user_preferences record
+        const db2 = client.db("test")
+        const userPreferencesCollection = db2.collection("user_preferences")
+
+        // Try to find preferences by spotifyId first
+        const existingPrefs = await userPreferencesCollection.findOne({
+          spotifyId: identifier
+        })
+
+        if (existingPrefs) {
+          sessionUserId = existingPrefs.userId
+          console.log('Found existing preferences, using userId:', sessionUserId)
+        }
+
+        console.log('Looking for user preferences with userId:', sessionUserId)
+        const userPreferences = await getUserPreferences(sessionUserId)
+        console.log('User preferences found:', userPreferences ? 'Yes' : 'No')
+
+        // Fetch recent tracks if user has that setting enabled
+        let recentTracksData = null
+        if (userPreferences?.publicDisplaySettings?.showRecentTracks) {
+          try {
+            console.log('Fetching recent tracks even though no current track...')
+            const recentTracks = await getSpotifyData(accessToken, `/me/player/recently-played?limit=${userPreferences.publicDisplaySettings.numberOfRecentTracks || 5}`)
+            if (recentTracks && recentTracks.items) {
+              recentTracksData = recentTracks.items.map((item: any) => ({
+                name: item.track.name,
+                artists: item.track.artists,
+                album: item.track.album,
+                duration_ms: item.track.duration_ms,
+                external_urls: item.track.external_urls,
+                played_at: item.played_at
+              }))
+              console.log('Found recent tracks:', recentTracksData.length)
+            }
+          } catch (error) {
+            console.log('Error fetching recent tracks when no current track:', error)
+          }
+        }
+
         return NextResponse.json({
           name: '',
           artists: [],
           album: { name: '', images: [] },
-          is_playing: false
+          is_playing: false,
+          recent_tracks: recentTracksData || []
         })
       }
 
@@ -264,11 +324,40 @@ export async function GET(
 
           if (!currentTrack || !currentTrack.item) {
             console.log('No current track or item after refresh')
+
+            // Even when no track is playing, check if user wants recent tracks shown
+            console.log('Looking for user preferences with userId after refresh:', account.userId)
+            const userPreferences = await getUserPreferences(account.userId)
+            console.log('User preferences found after refresh:', userPreferences ? 'Yes' : 'No')
+
+            // Fetch recent tracks if user has that setting enabled
+            let recentTracksData = null
+            if (userPreferences?.publicDisplaySettings?.showRecentTracks) {
+              try {
+                console.log('Fetching recent tracks after refresh even though no current track...')
+                const recentTracks = await getSpotifyData(accessToken, `/me/player/recently-played?limit=${userPreferences.publicDisplaySettings.numberOfRecentTracks || 5}`)
+                if (recentTracks && recentTracks.items) {
+                  recentTracksData = recentTracks.items.map((item: any) => ({
+                    name: item.track.name,
+                    artists: item.track.artists,
+                    album: item.track.album,
+                    duration_ms: item.track.duration_ms,
+                    external_urls: item.track.external_urls,
+                    played_at: item.played_at
+                  }))
+                  console.log('Found recent tracks after refresh:', recentTracksData.length)
+                }
+              } catch (error) {
+                console.log('Error fetching recent tracks when no current track after refresh:', error)
+              }
+            }
+
             return NextResponse.json({
               name: '',
               artists: [],
               album: { name: '', images: [] },
-              is_playing: false
+              is_playing: false,
+              recent_tracks: recentTracksData || []
             })
           }
 
@@ -340,6 +429,7 @@ export async function GET(
       artists: [],
       album: { name: '', images: [] },
       is_playing: false,
+      recent_tracks: [],
       error: 'Failed to fetch track data'
     }, { status: 500 })
   }

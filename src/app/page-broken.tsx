@@ -1,7 +1,18 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              size="lg" 
+              onClick={() => signIn("spotify")}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8 py-6"
+            >
+              Get Started Free
+            </Button>
+            <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-primary/50 hover:border-primary">
+              View Demo
+            </Button>
+          </div>ption, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Music, Shield, Eye, Palette, MonitorSpeaker, Link2 } from "lucide-react"
 import { signIn, useSession } from "next-auth/react"
@@ -61,10 +72,23 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
+      {/* Navigation */}
+      <nav className="border-b bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <Music className="h-6 w-6 text-primary" />
+            <span className="text-xl font-bold">SpotifyUtil</span>
+          </div>
+          <Button onClick={() => signIn("spotify")} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            Login with Spotify
+          </Button>
+        </div>
+      </nav>
+
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20 text-center">
         <div className="max-w-4xl mx-auto">
-          <Badge variant="outline" className="mb-4 border-primary/30">
+          <Badge variant="outline" className="mb-4">
             🎵 Now Playing: Your Music, Your Way
           </Badge>
           <h1 className="text-4xl sm:text-6xl font-bold mb-6 bg-gradient-to-r from-primary via-primary/80 to-emerald-400 bg-clip-text text-transparent">
@@ -80,11 +104,11 @@ export default function Home() {
             <Button
               size="lg"
               onClick={() => signIn("spotify")}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8 py-6"
+              className="bg-[#1DB954] hover:bg-[#1ed760] text-white text-lg px-8 py-6"
             >
               Get Started Free
             </Button>
-            <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-primary/50 hover:border-primary">
+            <Button size="lg" variant="outline" className="text-lg px-8 py-6">
               View Demo
             </Button>
           </div>
@@ -104,7 +128,7 @@ export default function Home() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, index) => (
-            <Card key={index} className="border-2 border-border hover:border-primary/50 transition-colors bg-card/50 backdrop-blur-sm">
+            <Card key={index} className="border-2 hover:border-primary/50 transition-colors">
               <CardHeader>
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-primary/10 rounded-lg">
@@ -129,21 +153,21 @@ export default function Home() {
           <h2 className="text-3xl sm:text-4xl font-bold mb-8">
             See It In Action
           </h2>
-          <Card className="p-8 bg-card/50 backdrop-blur-sm border-2">
-            <div className="bg-black/90 rounded-lg p-6 text-white font-mono text-sm border border-primary/20">
+          <Card className="p-8 bg-gradient-to-br from-card to-muted">
+            <div className="bg-black rounded-lg p-6 text-white font-mono text-sm">
               <div className="flex items-center space-x-2 mb-4">
                 <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                 <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="ml-4 text-gray-400">your-domain.com/display/abc123</span>
+                <span className="ml-4 text-gray-400">https://your-site.com/display/abc123</span>
               </div>
               <div className="space-y-2">
-                <div className="text-primary">🎵 Now Playing:</div>
+                <div className="text-green-400">🎵 Now Playing:</div>
                 <div className="text-white text-lg">Song Title - Artist Name</div>
                 <div className="text-gray-400">Album: Album Name (2024)</div>
                 <div className="flex items-center space-x-2">
                   <div className="w-32 h-2 bg-gray-700 rounded-full">
-                    <div className="w-20 h-2 bg-primary rounded-full"></div>
+                    <div className="w-20 h-2 bg-green-500 rounded-full"></div>
                   </div>
                   <span className="text-gray-400">2:30 / 4:15</span>
                 </div>
@@ -158,7 +182,7 @@ export default function Home() {
 
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-20">
-        <Card className="bg-primary text-primary-foreground p-12 text-center border-primary">
+        <Card className="bg-primary text-primary-foreground p-12 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
             Ready to Share Your Music?
           </h2>
@@ -169,7 +193,7 @@ export default function Home() {
             size="lg"
             variant="secondary"
             onClick={() => signIn("spotify")}
-            className="text-lg px-8 py-6 bg-background text-foreground hover:bg-background/90"
+            className="text-lg px-8 py-6"
           >
             Start Your Musical Journey
           </Button>

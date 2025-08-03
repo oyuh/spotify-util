@@ -61,6 +61,19 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
+      {/* Navigation */}
+      <nav className="border-b bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <Music className="h-6 w-6 text-primary" />
+            <span className="text-xl font-bold">SpotifyUtil</span>
+          </div>
+          <Button onClick={() => signIn("spotify")} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            Login with Spotify
+          </Button>
+        </div>
+      </nav>
+
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20 text-center">
         <div className="max-w-4xl mx-auto">
@@ -135,7 +148,7 @@ export default function Home() {
                 <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                 <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="ml-4 text-gray-400">your-domain.com/display/abc123</span>
+                <span className="ml-4 text-gray-400">https://your-site.com/display/abc123</span>
               </div>
               <div className="space-y-2">
                 <div className="text-primary">🎵 Now Playing:</div>

@@ -52,24 +52,19 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { identifier: string } }
 ) {
-  const { identifier } = await params
-  console.log('Stream API called for identifier:', identifier)
+  console.log('Stream API called for identifier:', params.identifier)
 
   try {
     await client.connect()
     const db = client.db('spotify-util')
 
-    // Use the same logic as display API - look for account by providerAccountId
-    const accounts = db.collection("accounts")
-    console.log('Looking for account with providerAccountId:', identifier)
-
-    let account = await accounts.findOne({
-      providerAccountId: identifier,
-      provider: "spotify"
+    // Find user by identifier
+    const user = await db.collection('users').findOne({
+      displayIdentifier: params.identifier
     })
 
-    if (!account) {
-      console.log('Stream API - Account not found by providerAccountId')
+    if (!user) {
+      console.log('Stream API - User not found')
       return NextResponse.json({
         name: '',
         artists: [],
@@ -78,7 +73,25 @@ export async function GET(
       })
     }
 
-    console.log('Stream API - Account found:', !!account.access_token)
+    console.log('Stream API - User found:', user.email)
+
+    // Get the account information for this user
+    const account = await db.collection('accounts').findOne({
+      userId: user._id.toString(),
+      provider: 'spotify'
+    })
+
+    if (!account) {
+      console.log('Stream API - No Spotify account found for user')
+      return NextResponse.json({
+        name: '',
+        artists: [],
+        album: { name: '', images: [] },
+        is_playing: false
+      })
+    }
+
+    console.log('Stream API - Account found, access token available:', !!account.access_token)
 
     let accessToken = account.access_token
 

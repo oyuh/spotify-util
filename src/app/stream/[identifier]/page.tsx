@@ -86,6 +86,29 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
         }
 
         const data = await response.json()
+
+        // Make sure we have at least a track name for display
+        if (data && !data.name) {
+          // If the server returns an empty name, check for recent tracks
+          try {
+            const recentResponse = await fetch(`/api/spotify/recent-tracks`)
+            if (recentResponse.ok) {
+              const recentData = await recentResponse.json()
+              if (recentData.items && recentData.items.length > 0) {
+                // Use the most recent track
+                const recentTrack = recentData.items[0].track
+                data.name = recentTrack.name
+                data.artists = recentTrack.artists
+                data.album = recentTrack.album
+                data.duration_ms = recentTrack.duration_ms
+                data.is_playing = false
+              }
+            }
+          } catch (recentErr) {
+            console.error("Failed to fetch recent tracks as fallback:", recentErr)
+          }
+        }
+
         setTrackData(data)
 
         // Update real progress tracking
@@ -153,33 +176,36 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
     )
   }
 
-  if (error || !trackData) {
+  if (error) {
     return (
       <div className="min-h-screen bg-transparent flex items-center justify-center">
-        <Card className="bg-black/80 backdrop-blur-sm border-red-500/50 p-6">
+        <Card className="bg-black/80 backdrop-blur-sm border-red-500/50 p-4 max-w-xs">
           <div className="text-center text-red-400">
             <Music className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="font-medium">No track data available</p>
-            <p className="text-sm opacity-75 mt-1">Check your display settings</p>
+            <p className="font-medium">Error fetching track data</p>
+            <p className="text-sm opacity-75 mt-1">{error}</p>
           </div>
         </Card>
       </div>
     )
   }
 
-  if (!trackData.name) {
+  if (!trackData) {
     return (
       <div className="min-h-screen bg-transparent flex items-center justify-center">
-        <Card className="bg-black/80 backdrop-blur-sm border-primary/30 p-6">
+        <Card className="bg-black/80 backdrop-blur-sm border-primary/30 p-4 max-w-xs">
           <div className="text-center text-white">
             <Music className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="font-medium">No music playing</p>
-            <p className="text-sm opacity-75 mt-1">Start playing on Spotify</p>
+            <p className="font-medium">No track information available</p>
+            <p className="text-sm opacity-75 mt-1">Check your Spotify connection</p>
           </div>
         </Card>
       </div>
     )
   }
+
+  // We've removed the "No music playing" message since we want to show the last played track
+  // when nothing is currently playing
 
   const albumImage = trackData.album ? getMediumImage(trackData.album.images) : null
   const currentProgress = trackData?.is_playing ? fakeProgress : (trackData?.progress_ms || 0)
@@ -227,7 +253,7 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
       }} />
       <div className="min-h-screen bg-transparent flex items-start justify-start p-4">
       {/* Clean Streamer Overlay */}
-      <div className="bg-transparent border-0 max-w-md w-full">
+      <div className="bg-transparent border-0 max-w-xs w-full">
         <div className="p-0">
           <div className="flex items-center space-x-3">
             {/* Album Art */}
@@ -244,7 +270,10 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
 
             {/* Track Info */}
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-white text-base truncate drop-shadow-lg">
+              <h3 className="font-bold text-white text-base truncate drop-shadow-lg flex items-center">
+                {!trackData.is_playing && (
+                  <Pause className="h-4 w-4 mr-1 text-white/70" aria-label="Not playing" />
+                )}
                 {trackData.name}
               </h3>
 

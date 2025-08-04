@@ -506,6 +506,32 @@ export default function Dashboard() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Footer Links */}
+        <div className="mt-12 pb-8 border-t border-gray-200 dark:border-gray-800">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-6 text-sm text-gray-600 dark:text-gray-400">
+            <a
+              href="/privacy"
+              className="hover:text-green-500 transition-colors"
+            >
+              Privacy Policy
+            </a>
+            <span className="hidden sm:inline">•</span>
+            <a
+              href="/terms"
+              className="hover:text-green-500 transition-colors"
+            >
+              Terms of Service
+            </a>
+            <span className="hidden sm:inline">•</span>
+            <a
+              href="/support"
+              className="hover:text-green-500 transition-colors"
+            >
+              Support
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   )

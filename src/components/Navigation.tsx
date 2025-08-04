@@ -1,6 +1,7 @@
 'use client'
 
 import { useSession, signIn, signOut } from 'next-auth/react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Settings, LogIn, LogOut, Music, Palette } from 'lucide-react'
 import SettingsModal from '@/components/SettingsModal'
@@ -9,23 +10,76 @@ import Link from 'next/link'
 
 export default function Navigation() {
   const { data: session, status } = useSession()
+  const [showNav, setShowNav] = useState(true)
+  const [isHoveringTop, setIsHoveringTop] = useState(false)
+
+  // Auto-hide navigation after 10 seconds, but show on hover
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowNav(false)
+    }, 10000) // 10 seconds
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Handle hover with delay for hiding
+  useEffect(() => {
+    let hideTimer: NodeJS.Timeout
+
+    if (!isHoveringTop) {
+      // Start 5-second timer when cursor leaves hover area
+      hideTimer = setTimeout(() => {
+        setShowNav(false)
+      }, 5000)
+    } else {
+      // Show immediately when hovering
+      setShowNav(true)
+    }
+
+    return () => {
+      if (hideTimer) {
+        clearTimeout(hideTimer)
+      }
+    }
+  }, [isHoveringTop])
 
   if (status === 'loading') {
     return (
-      <nav className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-background/95 backdrop-blur-md border border-border/50 rounded-2xl shadow-xl shadow-black/10">
-        <div className="px-4 flex h-14 items-center">
-          <div className="mr-4 flex">
-            <Music className="mr-2 h-5 w-5 text-primary" />
-            <span className="font-bold">SpotifyUtil</span>
+      <>
+        {/* Hover detection area for navigation */}
+        <div
+          className="fixed top-0 left-0 w-full h-20 z-40"
+          onMouseEnter={() => setIsHoveringTop(true)}
+          onMouseLeave={() => setIsHoveringTop(false)}
+        />
+
+        <nav className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-background/95 backdrop-blur-md border border-border/50 rounded-2xl shadow-xl shadow-black/10 transition-all duration-500 ease-out ${
+          showNav || isHoveringTop ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0'
+        }`}>
+          <div className="px-4 flex h-14 items-center">
+            <div className="mr-4 flex">
+              <Music className="mr-2 h-5 w-5 text-primary" />
+              <span className="font-bold">SpotifyUtil</span>
+            </div>
+            <div className="w-20 h-8 bg-muted/50 animate-pulse rounded ml-6" />
           </div>
-          <div className="w-20 h-8 bg-muted/50 animate-pulse rounded ml-6" />
-        </div>
-      </nav>
+        </nav>
+      </>
     )
   }
 
   return (
-    <nav className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-background/95 backdrop-blur-md border border-border/50 rounded-2xl shadow-xl shadow-black/10">
+    <>
+      {/* Hover detection area for navigation */}
+      <div
+        className="fixed top-0 left-0 w-full h-20 z-40"
+        onMouseEnter={() => setIsHoveringTop(true)}
+        onMouseLeave={() => setIsHoveringTop(false)}
+      />
+
+      <nav className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-background/95 backdrop-blur-md border border-border/50 rounded-2xl shadow-xl shadow-black/10 transition-all duration-500 ease-out ${
+        showNav || isHoveringTop ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0'
+      }`}>
       <div className="px-4 flex h-14 items-center">
         <div className="mr-4 flex items-center">
           <Link href="/" className="flex items-center group">
@@ -81,7 +135,8 @@ export default function Navigation() {
             </Button>
           )}
         </div>
-      </div>
-    </nav>
+        </div>
+      </nav>
+    </>
   )
 }

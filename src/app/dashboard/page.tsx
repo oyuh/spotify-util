@@ -9,11 +9,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
-import { ExternalLink, Copy, Check, Monitor, Settings, Eye, Music, User } from 'lucide-react'
+import { ExternalLink, Copy, Check, Monitor, Settings, Eye, Music, User, Trash2, AlertTriangle } from 'lucide-react'
 import { CurrentTrack } from '@/components/CurrentTrack'
 import { RecentTracks } from '@/components/RecentTracks'
 import SettingsModal from '@/components/SettingsModal'
 import { getBaseUrl } from '@/lib/url'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 interface UserProfile {
   id: string
@@ -31,6 +42,7 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -68,6 +80,29 @@ export default function Dashboard() {
     await navigator.clipboard.writeText(text)
     setCopiedUrl(type)
     setTimeout(() => setCopiedUrl(null), 2000)
+  }
+
+  const deleteAccountData = async () => {
+    if (!session?.userId) return
+
+    setIsDeletingAccount(true)
+    try {
+      const response = await fetch('/api/user/delete-account', {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete account data')
+      }
+
+      // Sign out after successful deletion
+      await signOut({ callbackUrl: '/login' })
+    } catch (error) {
+      console.error('Error deleting account data:', error)
+      alert('Failed to delete account data. Please try again.')
+    } finally {
+      setIsDeletingAccount(false)
+    }
   }
 
   if (status === 'loading' || isLoading) {
@@ -393,7 +428,7 @@ export default function Dashboard() {
                   Actions that cannot be undone
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <div className="p-4 border border-destructive/20 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div>
@@ -409,6 +444,62 @@ export default function Dashboard() {
                     >
                       Sign Out
                     </Button>
+                  </div>
+                </div>
+
+                <div className="p-4 border border-destructive/20 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-start space-x-3">
+                      <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+                      <div>
+                        <h5 className="font-medium text-destructive">Delete Account Data</h5>
+                        <p className="text-sm text-muted-foreground">
+                          Permanently delete all your account data, preferences, and custom slugs.
+                          This will sign you out and cannot be undone.
+                        </p>
+                      </div>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={isDeletingAccount}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {isDeletingAccount ? 'Deleting...' : 'Delete Data'}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-destructive">
+                            Are you absolutely sure?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete your account
+                            data including:
+                            <ul className="list-disc list-inside mt-2 space-y-1">
+                              <li>Display preferences and settings</li>
+                              <li>Custom slugs and privacy settings</li>
+                              <li>Stored Spotify authentication tokens</li>
+                              <li>All session data</li>
+                            </ul>
+                            <br />
+                            You will be signed out immediately and will need to reconnect your
+                            Spotify account to use the service again.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={deleteAccountData}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Yes, delete my data
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardContent>

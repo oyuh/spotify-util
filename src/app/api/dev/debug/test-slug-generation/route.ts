@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
 import { generateCustomSlug } from "@/lib/utils"
 import { getUserBySlug, updateUserPreferences, getUserPreferences } from "@/lib/db"
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    // Simulate being the user with ID 688ebe078be59f856ce1882c
+    const userId = "688ebe078be59f856ce1882c"
 
     let slug: string
     let attempts = 0
@@ -35,19 +30,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Get current preferences
+    const currentPrefs = await getUserPreferences(userId)
+    const oldSlug = currentPrefs?.privacySettings?.customSlug
+
     // Save the new slug to the user's preferences
-    const currentPrefs = await getUserPreferences(session.userId)
-    await updateUserPreferences(session.userId, {
+    await updateUserPreferences(userId, {
       privacySettings: {
-        isPublic: currentPrefs?.privacySettings?.isPublic ?? true,
+        isPublic: currentPrefs?.privacySettings?.isPublic ?? false,
         hideSpotifyId: currentPrefs?.privacySettings?.hideSpotifyId ?? true,
         customSlug: slug
       }
     })
 
-    console.log(`Generated and saved new slug for user ${session.userId}: ${slug}`)
+    console.log(`Generated and saved new slug for user ${userId}: ${slug} (old: ${oldSlug})`)
 
-    return NextResponse.json({ slug })
+    return NextResponse.json({
+      slug,
+      oldSlug,
+      message: "New slug generated and saved successfully"
+    })
   } catch (error) {
     console.error("Error generating custom slug:", error)
     return NextResponse.json(

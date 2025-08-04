@@ -31,8 +31,7 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Copy, Settings, Eye, EyeOff, Shuffle, Link as LinkIcon, Palette, Monitor } from 'lucide-react'
 import { toast } from 'sonner'
-import ThemeSelector from '@/components/ThemeSelector'
-import { displayThemes, streamThemes } from '@/lib/themes'
+import { displayStyles } from '@/lib/app-themes'
 
 interface UserPreferences {
   publicDisplaySettings: {
@@ -51,8 +50,7 @@ interface UserPreferences {
     hideSpotifyId: boolean
   }
   displaySettings: {
-    displayTheme: string
-    streamTheme: string
+    style: string
     customCSS?: string
     streamerMode: boolean
     position?: {
@@ -86,8 +84,7 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
       hideSpotifyId: false
     },
     displaySettings: {
-      displayTheme: 'default',
-      streamTheme: 'transparent',
+      style: 'minimal',
       customCSS: '',
       streamerMode: false
     }
@@ -593,77 +590,115 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
               <CardContent className="space-y-6">
                 {/* Display Theme Selection */}
                 <div className="space-y-3">
-                  <Label className="text-sm font-medium">Display Theme</Label>
-                  <p className="text-xs text-muted-foreground">Theme for public display pages</p>
+                  <Label className="text-sm font-medium">Display Style</Label>
+                  <p className="text-xs text-muted-foreground">Style for public display pages</p>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {displayThemes.slice(0, 6).map((theme) => (
+                    {displayStyles.slice(0, 6).map((style) => (
                       <div
-                        key={theme.id}
+                        key={style.id}
                         className={`cursor-pointer p-3 rounded-lg border transition-all hover:scale-105 ${
-                          preferences.displaySettings.displayTheme === theme.id
+                          preferences.displaySettings.style === style.id
                             ? 'ring-2 ring-primary border-primary'
                             : 'border-border hover:border-primary/50'
                         }`}
-                        onClick={() =>
+                        onClick={async () => {
                           setPreferences(prev => ({
                             ...prev,
                             displaySettings: {
                               ...prev.displaySettings,
-                              displayTheme: theme.id
+                              style: style.id
                             }
                           }))
-                        }
+
+                          // Save to server immediately
+                          try {
+                            const response = await fetch('/api/user/display-style', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                styleId: style.id,
+                                customCSS: preferences.displaySettings.customCSS
+                              }),
+                            })
+
+                            if (response.ok) {
+                              toast.success(`Display style changed to ${style.name}`)
+                            } else {
+                              toast.error('Failed to save display style')
+                            }
+                          } catch (error) {
+                            console.error('Error saving display style:', error)
+                            toast.error('Failed to save display style')
+                          }
+                        }}
                       >
                         <div
                           className="w-full h-8 rounded mb-2 border"
-                          style={{ background: theme.preview }}
+                          style={{ background: style.preview }}
                         ></div>
-                        <div className="text-xs font-medium">{theme.name}</div>
+                        <div className="text-xs font-medium">{style.name}</div>
                       </div>
                     ))}
                   </div>
-                  <ThemeSelector>
-                    <Button variant="outline" size="sm" className="w-full">
-                      <Palette className="w-4 h-4 mr-2" />
-                      Browse All Display Themes
-                    </Button>
-                  </ThemeSelector>
+
+                  {/* Show more styles */}
+                  {displayStyles.length > 6 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+                      {displayStyles.slice(6).map((style) => (
+                        <div
+                          key={style.id}
+                          className={`cursor-pointer p-3 rounded-lg border transition-all hover:scale-105 ${
+                            preferences.displaySettings.style === style.id
+                              ? 'ring-2 ring-primary border-primary'
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                          onClick={async () => {
+                            setPreferences(prev => ({
+                              ...prev,
+                              displaySettings: {
+                                ...prev.displaySettings,
+                                style: style.id
+                              }
+                            }))
+
+                            // Save to server immediately
+                            try {
+                              const response = await fetch('/api/user/display-style', {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                  styleId: style.id,
+                                  customCSS: preferences.displaySettings.customCSS
+                                }),
+                              })
+
+                              if (response.ok) {
+                                toast.success(`Display style changed to ${style.name}`)
+                              } else {
+                                toast.error('Failed to save display style')
+                              }
+                            } catch (error) {
+                              console.error('Error saving display style:', error)
+                              toast.error('Failed to save display style')
+                            }
+                          }}
+                        >
+                          <div
+                            className="w-full h-8 rounded mb-2 border"
+                            style={{ background: style.preview }}
+                          ></div>
+                          <div className="text-xs font-medium">{style.name}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <Separator />
-
-                {/* Stream Theme Selection */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Stream Theme</Label>
-                  <p className="text-xs text-muted-foreground">Theme for streaming overlays and OBS</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {streamThemes.map((theme) => (
-                      <div
-                        key={theme.id}
-                        className={`cursor-pointer p-3 rounded-lg border transition-all hover:scale-105 ${
-                          preferences.displaySettings.streamTheme === theme.id
-                            ? 'ring-2 ring-primary border-primary'
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                        onClick={() =>
-                          setPreferences(prev => ({
-                            ...prev,
-                            displaySettings: {
-                              ...prev.displaySettings,
-                              streamTheme: theme.id
-                            }
-                          }))
-                        }
-                      >
-                        <div
-                          className="w-full h-8 rounded mb-2 border"
-                          style={{ background: theme.preview }}
-                        ></div>
-                        <div className="text-xs font-medium">{theme.name}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
 
                 <Separator />
 

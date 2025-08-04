@@ -1,15 +1,25 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getUserBySlug } from "@/lib/db"
-import { MongoClient } from "mongodb"
+import { getUserBySlug, getDatabase } from "@/lib/db"
+import { ObjectId } from "mongodb"
 
-const client = new MongoClient(process.env.MONGODB_URI!)
+async function refreshSpotifyToken(refreshToken: string) {
+  const response = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${Buffer.from(`${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`).toString('base64')}`
+    },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken
+    })
+  })
 
-interface UserSession {
-  userId: string
-  spotifyId: string
-  access_token: string
-  refresh_token: string
-  expires_at: number
+  if (!response.ok) {
+    throw new Error(`Failed to refresh token: ${response.status}`)
+  }
+
+  return response.json()
 }
 
 async function getSpotifyData(accessToken: string, endpoint: string) {
@@ -21,6 +31,9 @@ async function getSpotifyData(accessToken: string, endpoint: string) {
   })
 
   if (!response.ok) {
+    if (response.status === 204) {
+      return null // No content (not playing)
+    }
     throw new Error(`Spotify API error: ${response.status}`)
   }
 
@@ -33,82 +46,323 @@ export async function GET(
 ) {
   try {
     const { slug } = await params
-    const { searchParams } = new URL(request.url)
-    const type = searchParams.get("type") || "current" // current, recent
-    const limit = parseInt(searchParams.get("limit") || "5", 10)
+    console.log('Slug display API called with slug:', slug)
 
     // Find user by custom slug
     const userPrefs = await getUserBySlug(slug)
 
     if (!userPrefs) {
+      console.log('No user found for slug:', slug)
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 
-    // Note: We don't check isPublic here because slug access should work regardless
-    // The privacy setting controls whether the regular Spotify ID works, not the slug
+    console.log('Found user for slug:', userPrefs.userId)
 
-    // Get user's access token from accounts collection
-    const db = client.db("spotify-util")
+    // Get user's access token from accounts collection using the correct database
+    const db = await getDatabase()  // Use shared database connection
     const accounts = db.collection("accounts")
 
     const account = await accounts.findOne({
-      userId: userPrefs.userId,
+      userId: new ObjectId(userPrefs.userId),
       provider: "spotify"
     })
 
     if (!account || !account.access_token) {
+      console.log('No account or access token found for user')
       return NextResponse.json({ error: "No access token available" }, { status: 404 })
     }
 
-    let spotifyData = null
+    console.log('Fetching current track from Spotify via slug...')
 
-    if (type === "current" && userPrefs.publicDisplaySettings.showCurrentTrack) {
-      spotifyData = await getSpotifyData(account.access_token, "/me/player/currently-playing")
-    } else if (type === "recent" && userPrefs.publicDisplaySettings.showRecentTracks) {
-      const trackLimit = Math.min(limit, userPrefs.publicDisplaySettings.numberOfRecentTracks)
-      spotifyData = await getSpotifyData(account.access_token, `/me/player/recently-played?limit=${trackLimit}`)
-    }
+    let accessToken = account.access_token
 
-    // Filter data based on user preferences
-    if (spotifyData && type === "current") {
-      const track = spotifyData.item
-      if (track) {
-        const filteredTrack = {
-          name: track.name,
-          artists: userPrefs.publicDisplaySettings.showArtist ? track.artists : undefined,
-          album: userPrefs.publicDisplaySettings.showAlbum ? track.album : undefined,
-          duration_ms: userPrefs.publicDisplaySettings.showDuration ? track.duration_ms : undefined,
-          external_urls: track.external_urls,
-          is_playing: spotifyData.is_playing,
-          progress_ms: userPrefs.publicDisplaySettings.showProgress ? spotifyData.progress_ms : undefined,
+    // Try to get current track, refresh token if needed
+    try {
+      const currentTrack = await getSpotifyData(accessToken, '/me/player/currently-playing')
+      console.log('Spotify response via slug:', currentTrack ? 'Got data' : 'No data')
+
+      if (!currentTrack || !currentTrack.item) {
+        console.log('No current track via slug - fetching last played track instead')
+
+        // ALWAYS fetch recent tracks to get the last played song
+        let recentTracksData = null
+        let lastPlayedTrack = null
+        try {
+          console.log('Fetching recent tracks to get last played song via slug...')
+          const recentTracks = await getSpotifyData(accessToken, `/me/player/recently-played?limit=${userPrefs?.publicDisplaySettings?.numberOfRecentTracks || 10}`)
+          if (recentTracks && recentTracks.items && recentTracks.items.length > 0) {
+            recentTracksData = recentTracks.items.map((item: any) => ({
+              name: item.track.name,
+              artists: item.track.artists,
+              album: item.track.album,
+              duration_ms: item.track.duration_ms,
+              external_urls: item.track.external_urls,
+              played_at: item.played_at
+            }))
+
+            // Use the most recent track as the main display
+            lastPlayedTrack = recentTracks.items[0].track
+            console.log('Using last played track as main display via slug:', lastPlayedTrack.name)
+          }
+        } catch (error) {
+          console.log('Error fetching recent tracks when no current track via slug:', error)
         }
 
+        // If we have a last played track, return it as the main track
+        if (lastPlayedTrack) {
+          const response: any = {
+            name: lastPlayedTrack.name,
+            is_playing: false, // It's not currently playing
+            duration_ms: lastPlayedTrack.duration_ms,
+            progress_ms: lastPlayedTrack.duration_ms, // Show as completed
+          }
+
+          // Apply user preferences for data visibility
+          if (userPrefs?.publicDisplaySettings) {
+            const settings = userPrefs.publicDisplaySettings
+
+            if (settings.showArtist) {
+              response.artists = lastPlayedTrack.artists
+            } else {
+              response.artists = []
+            }
+
+            if (settings.showAlbum) {
+              response.album = lastPlayedTrack.album
+            } else {
+              response.album = { name: '', images: [] }
+            }
+
+            if (settings.showCredits) {
+              response.credits = {
+                spotify_url: lastPlayedTrack.external_urls?.spotify,
+                artists: lastPlayedTrack.artists,
+                album: {
+                  name: lastPlayedTrack.album.name,
+                  spotify_url: lastPlayedTrack.album.external_urls?.spotify
+                },
+                track_id: lastPlayedTrack.id,
+                uri: lastPlayedTrack.uri
+              }
+            }
+
+            if (settings.showRecentTracks && recentTracksData) {
+              response.recent_tracks = recentTracksData
+            }
+          } else {
+            // Default behavior if no preferences found
+            response.artists = lastPlayedTrack.artists
+            response.album = lastPlayedTrack.album
+            response.credits = {
+              spotify_url: lastPlayedTrack.external_urls?.spotify,
+              artists: lastPlayedTrack.artists,
+              album: {
+                name: lastPlayedTrack.album.name,
+                spotify_url: lastPlayedTrack.album.external_urls?.spotify
+              },
+              track_id: lastPlayedTrack.id,
+              uri: lastPlayedTrack.uri
+            }
+            response.recent_tracks = recentTracksData || []
+          }
+
+          return NextResponse.json({
+            ...response,
+            preferences: userPrefs
+          })
+        }
+
+        // Fallback if no recent tracks available
         return NextResponse.json({
-          ...filteredTrack,
-          settings: userPrefs.displaySettings,
+          name: 'No recent tracks available',
+          artists: [{ name: 'No data' }],
+          album: { name: '', images: [] },
+          duration_ms: 0,
+          is_playing: false,
+          progress_ms: 0,
+          recent_tracks: [],
+          preferences: userPrefs
         })
       }
-    } else if (spotifyData && type === "recent") {
-      const filteredTracks = spotifyData.items?.map((item: any) => ({
-        track: {
-          name: item.track.name,
-          artists: userPrefs.publicDisplaySettings.showArtist ? item.track.artists : undefined,
-          album: userPrefs.publicDisplaySettings.showAlbum ? item.track.album : undefined,
-          duration_ms: userPrefs.publicDisplaySettings.showDuration ? item.track.duration_ms : undefined,
-          external_urls: item.track.external_urls,
-        },
-        played_at: item.played_at,
-      }))
+
+      console.log('Returning track data via slug:', currentTrack.item.name)
+
+      // Build response based on user preferences
+      const response: any = {
+        name: currentTrack.item.name,
+        is_playing: currentTrack.is_playing
+      }
+
+      // Fetch recent tracks if needed
+      let recentTracksData = null
+      if (userPrefs?.publicDisplaySettings?.showRecentTracks) {
+        try {
+          const recentTracks = await getSpotifyData(accessToken, `/me/player/recently-played?limit=${userPrefs.publicDisplaySettings.numberOfRecentTracks || 5}`)
+          if (recentTracks && recentTracks.items) {
+            recentTracksData = recentTracks.items.map((item: any) => ({
+              name: item.track.name,
+              artists: item.track.artists,
+              album: item.track.album,
+              duration_ms: item.track.duration_ms,
+              external_urls: item.track.external_urls,
+              played_at: item.played_at
+            }))
+          }
+        } catch (error) {
+          console.log('Error fetching recent tracks via slug:', error)
+        }
+      }
+
+      // Apply user preferences for data visibility
+      if (userPrefs?.publicDisplaySettings) {
+        const settings = userPrefs.publicDisplaySettings
+
+        if (settings.showArtist) {
+          response.artists = currentTrack.item.artists
+        } else {
+          response.artists = []
+        }
+
+        if (settings.showAlbum) {
+          response.album = currentTrack.item.album
+        } else {
+          response.album = { name: '', images: [] }
+        }
+
+        if (settings.showDuration) {
+          response.duration_ms = currentTrack.item.duration_ms
+        }
+
+        if (settings.showProgress) {
+          response.progress_ms = currentTrack.progress_ms
+        }
+
+        if (settings.showCredits) {
+          // Enhanced credits information
+          response.credits = {
+            spotify_url: currentTrack.item.external_urls?.spotify,
+            artists: currentTrack.item.artists,
+            album: {
+              name: currentTrack.item.album.name,
+              spotify_url: currentTrack.item.album.external_urls?.spotify
+            },
+            track_id: currentTrack.item.id,
+            uri: currentTrack.item.uri
+          }
+        }
+
+        // Always show recent tracks if user has that setting enabled
+        if (settings.showRecentTracks && recentTracksData) {
+          response.recent_tracks = recentTracksData
+        }
+      } else {
+        // Default behavior if no preferences found
+        response.artists = currentTrack.item.artists
+        response.album = currentTrack.item.album
+        response.duration_ms = currentTrack.item.duration_ms
+        response.progress_ms = currentTrack.progress_ms
+        response.credits = {
+          spotify_url: currentTrack.item.external_urls?.spotify,
+          artists: currentTrack.item.artists,
+          album: {
+            name: currentTrack.item.album.name,
+            spotify_url: currentTrack.item.album.external_urls?.spotify
+          },
+          track_id: currentTrack.item.id,
+          uri: currentTrack.item.uri
+        }
+        // Always fetch recent tracks in default mode too
+        response.recent_tracks = recentTracksData || []
+      }
 
       return NextResponse.json({
-        items: filteredTracks,
-        settings: userPrefs.displaySettings,
+        ...response,
+        preferences: userPrefs
       })
-    }
+    } catch (error) {
+      // If we get a 401, try to refresh the token
+      if (error instanceof Error && error.message.includes('401')) {
+        console.log('Slug API - Access token expired, attempting refresh...')
 
-    return NextResponse.json({ data: null })
+        if (!account.refresh_token) {
+          throw new Error('No refresh token available')
+        }
+
+        try {
+          const refreshData = await refreshSpotifyToken(account.refresh_token)
+          accessToken = refreshData.access_token
+
+          // Update the token in the database
+          await accounts.updateOne(
+            { _id: account._id },
+            {
+              $set: {
+                access_token: accessToken,
+                expires_at: Math.floor(Date.now() / 1000) + refreshData.expires_in
+              }
+            }
+          )
+
+          console.log('Slug API - Token refreshed successfully')
+
+          // Retry the request with new token (similar logic as above)
+          const currentTrack = await getSpotifyData(accessToken, '/me/player/currently-playing')
+
+          if (!currentTrack || !currentTrack.item) {
+            // Same fallback logic for refreshed token
+            let recentTracksData = null
+            let lastPlayedTrack = null
+            try {
+              const recentTracks = await getSpotifyData(accessToken, `/me/player/recently-played?limit=10`)
+              if (recentTracks && recentTracks.items && recentTracks.items.length > 0) {
+                recentTracksData = recentTracks.items.map((item: any) => ({
+                  name: item.track.name,
+                  artists: item.track.artists,
+                  album: item.track.album,
+                  duration_ms: item.track.duration_ms,
+                  external_urls: item.track.external_urls,
+                  played_at: item.played_at
+                }))
+                lastPlayedTrack = recentTracks.items[0].track
+              }
+            } catch (error) {
+              console.log('Error fetching recent tracks after refresh via slug:', error)
+            }
+
+            if (lastPlayedTrack) {
+              return NextResponse.json({
+                name: lastPlayedTrack.name,
+                artists: lastPlayedTrack.artists,
+                album: lastPlayedTrack.album,
+                duration_ms: lastPlayedTrack.duration_ms,
+                is_playing: false,
+                progress_ms: lastPlayedTrack.duration_ms,
+                recent_tracks: recentTracksData || [],
+                preferences: userPrefs
+              })
+            }
+          }
+
+          // Return refreshed current track data (simplified for brevity)
+          return NextResponse.json({
+            name: currentTrack.item.name,
+            artists: currentTrack.item.artists,
+            album: currentTrack.item.album,
+            duration_ms: currentTrack.item.duration_ms,
+            is_playing: currentTrack.is_playing,
+            progress_ms: currentTrack.progress_ms,
+            preferences: userPrefs
+          })
+        } catch (refreshError) {
+          console.error('Slug API - Failed to refresh token:', refreshError)
+          throw error // Re-throw original error
+        }
+      } else {
+        throw error // Re-throw non-401 errors
+      }
+    }
   } catch (error) {
-    console.error("Error fetching public display data:", error)
+    console.error('Error in slug display API:', error)
     return NextResponse.json(
       { error: "Failed to fetch data" },
       { status: 500 }

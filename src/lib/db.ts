@@ -1,4 +1,4 @@
-import { MongoClient, Db, Collection } from "mongodb"
+import { MongoClient, Db, Collection, ObjectId } from "mongodb"
 
 declare global {
   var _mongoClientPromise: Promise<MongoClient>
@@ -67,10 +67,15 @@ export interface UserPreferences {
     customSlug?: string
     hideSpotifyId: boolean
   }
+  // App-wide theme settings (private to user)
+  appSettings: {
+    theme: string // App theme ID (dark, light, spotify-dark, etc.)
+  }
+  // Display style settings (public, visible to visitors)
   displaySettings: {
-    displayTheme: string
-    streamTheme: string
+    style: string // Display style ID (minimal, spotify-classic, neon-purple, etc.)
     customCSS?: string
+    backgroundImage?: string // URL to custom background image
     streamerMode: boolean
     position?: {
       x: number
@@ -164,10 +169,13 @@ export async function createDefaultUserPreferences(userId: string, spotifyId: st
       isPublic: false,
       hideSpotifyId: true,
     },
+    appSettings: {
+      theme: "dark", // Default app theme
+    },
     displaySettings: {
-      displayTheme: "default",
-      streamTheme: "transparent",
+      style: "minimal", // Default display style
       streamerMode: false,
+      // backgroundImage field will be undefined by default
     },
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -178,4 +186,22 @@ export async function createDefaultUserPreferences(userId: string, spotifyId: st
     { $setOnInsert: defaultPreferences },
     { upsert: true }
   )
+}
+
+export async function deleteUser(userId: string): Promise<void> {
+  const db = await getDatabase()
+
+  // Delete user preferences
+  const userPrefsCollection = db.collection("user_preferences")
+  await userPrefsCollection.deleteOne({ userId })
+
+  // Delete user accounts (OAuth data) - check both string and ObjectId formats
+  const accountsCollection = db.collection("accounts")
+  await accountsCollection.deleteMany({ userId: { $in: [userId, new ObjectId(userId)] } })
+
+  // Delete user sessions
+  const sessionsCollection = db.collection("sessions")
+  await sessionsCollection.deleteMany({ userId })
+
+  console.log(`Deleted all data for user: ${userId}`)
 }

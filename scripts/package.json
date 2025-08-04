@@ -1,0 +1,9 @@
+{
+  "name": "dev-routes-manager",
+  "version": "1.0.0",
+  "scripts": {
+    "dev:list-routes": "node scripts/list-dev-routes.js",
+    "dev:test-routes": "node scripts/test-dev-routes.js",
+    "dev:clean": "node scripts/clean-dev-data.js"
+  }
+}

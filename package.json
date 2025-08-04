@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "dev:routes": "node scripts/list-dev-routes.js"
   },
   "dependencies": {
     "@heroui/react": "^2.8.2",

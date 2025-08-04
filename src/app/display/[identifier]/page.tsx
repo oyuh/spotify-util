@@ -6,8 +6,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Music, Clock, User } from 'lucide-react'
 import Image from 'next/image'
 import { formatDuration, getMediumImage } from '@/lib/utils'
-import { useTheme, useThemeClasses } from '@/contexts/theme-context'
-import { getTheme } from '@/lib/themes'
+import { useDisplayStyle, useDisplayStyleClasses } from '@/contexts/display-style-context'
+import { getDisplayStyle } from '@/lib/app-themes'
 
 interface DisplayTrack {
   name: string
@@ -47,43 +47,111 @@ interface DisplayTrack {
 export default function PublicDisplay() {
   const params = useParams()
   const identifier = params.identifier as string
-  const { setTheme } = useTheme()
-  const themeClasses = useThemeClasses()
+  const { setStyle, applyStyle } = useDisplayStyle()
+  const styleClasses = useDisplayStyleClasses()
   const [currentTrack, setCurrentTrack] = useState<DisplayTrack | null>(null)
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
   const [fakeProgress, setFakeProgress] = useState(0)
   const [lastRealProgress, setLastRealProgress] = useState(0)
   const [lastUpdateTime, setLastUpdateTime] = useState(Date.now())
-  const [userTheme, setUserTheme] = useState<string>('default')
+  const [userStyle, setUserStyle] = useState<string>('minimal')
 
   useEffect(() => {
-    const fetchUserTheme = async () => {
+    const fetchUserStyle = async () => {
       try {
-        // First try to get user preferences by identifier
-        const response = await fetch(`/api/public/spotify/${identifier}`)
+        console.log('🎨 Display Page: Fetching style for identifier:', identifier)
+
+        // First try to get style from slug endpoint
+        let response = await fetch(`/api/public/display/${identifier}`)
+        console.log('🎨 Display Page: Slug API response status:', response.status)
+
+        // If slug fails, try Spotify ID endpoint
+        if (!response.ok && response.status === 404) {
+          console.log('🎨 Display Page: Slug failed, trying Spotify ID endpoint')
+          response = await fetch(`/api/public/spotify/${identifier}`)
+          console.log('🎨 Display Page: Spotify ID API response status:', response.status)
+        }
+
+        // If public endpoints fail, try regular display endpoint
+        if (!response.ok && response.status === 404) {
+          console.log('🎨 Display Page: Public endpoints failed, trying regular display endpoint')
+          response = await fetch(`/api/display/${identifier}`)
+          console.log('🎨 Display Page: Regular display API response status:', response.status)
+        }
+
         if (response.ok) {
           const userData = await response.json()
-          if (userData.preferences?.displaySettings?.displayTheme) {
-            const themeId = userData.preferences.displaySettings.displayTheme
-            setUserTheme(themeId)
-            setTheme(themeId, 'display')
+          console.log('🎨 Display Page: API response data:', userData)
+          console.log('🎨 Display Page: Preferences found:', userData.preferences)
+
+          if (userData.preferences?.displaySettings?.style) {
+            const styleId = userData.preferences.displaySettings.style
+            console.log('🎨 Display Page: Setting style to:', styleId)
+            setUserStyle(styleId)
+
+            // Create a custom style object if user has background image
+            const customBackground = userData.preferences.displaySettings.backgroundImage
+            if (customBackground) {
+              console.log('🎨 Display Page: Custom background image found:', customBackground)
+              // Apply the style with custom background
+              const baseStyle = getDisplayStyle(styleId)
+              const customStyle = {
+                ...baseStyle,
+                backgroundImage: customBackground
+              }
+              applyStyle(customStyle)
+            } else {
+              setStyle(styleId)
+            }
+            return
+          } else {
+            console.log('🎨 Display Page: No style in preferences, using minimal')
           }
+        } else {
+          console.log('🎨 Display Page: API call failed, using minimal')
         }
+
+        // Use default style if no preferences found
+        console.log('🎨 Display Page: Falling back to minimal style')
+        setStyle('minimal')
       } catch (error) {
-        console.error('Error fetching user theme:', error)
-        // Use default theme on error
-        setTheme('default', 'display')
+        console.error('🎨 Display Page: Error fetching user style:', error)
+        // Use default style on error
+        setStyle('minimal')
       }
     }
 
-    fetchUserTheme()
-  }, [identifier, setTheme])
+    fetchUserStyle()
+  }, [identifier, setStyle])
 
   useEffect(() => {
     const fetchCurrentTrack = async (isInitial = false) => {
       try {
-        const response = await fetch(`/api/display/${identifier}`)
+        let apiUrl: string
+        let response: Response
+
+        // First, try as a slug
+        apiUrl = `/api/public/display/${identifier}`
+        console.log('Trying slug endpoint:', apiUrl)
+        response = await fetch(apiUrl, {
+          cache: 'no-store', // Prevent caching issues
+          headers: {
+            'Cache-Control': 'no-cache',
+          }
+        })
+
+        // If slug fails with 404, try as Spotify ID
+        if (!response.ok && response.status === 404) {
+          apiUrl = `/api/display/${identifier}`
+          console.log('Slug failed, trying Spotify ID endpoint:', apiUrl)
+          response = await fetch(apiUrl, {
+            cache: 'no-store', // Prevent caching issues
+            headers: {
+              'Cache-Control': 'no-cache',
+            }
+          })
+        }
 
         if (response.ok) {
           const data = await response.json()
@@ -97,7 +165,7 @@ export default function PublicDisplay() {
             setLastUpdateTime(Date.now())
           }
         } else if (response.status === 404) {
-          // Privacy enabled or user not found
+          // Neither slug nor Spotify ID worked
           setCurrentTrack({
             name: '',
             artists: [],
@@ -105,7 +173,7 @@ export default function PublicDisplay() {
             duration_ms: 0,
             is_playing: false,
             progress_ms: 0,
-            error: 'Display not found or private'
+            error: 'Display not found - this identifier may not exist or be private'
           })
         }
       } catch (error) {
@@ -155,8 +223,8 @@ export default function PublicDisplay() {
 
   if (loading) {
     return (
-      <div className={`min-h-screen ${themeClasses.background} flex items-center justify-center p-4`}>
-        <Card className={themeClasses.getCardClasses()}>
+      <div className={`min-h-screen ${styleClasses.background} flex items-center justify-center p-4`}>
+        <Card className={`${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow}`}>
           <CardContent className="p-8">
             <div className="flex items-center space-x-4 animate-pulse">
               <div className="w-20 h-20 bg-muted rounded-lg"></div>
@@ -175,8 +243,8 @@ export default function PublicDisplay() {
   // Handle error states
   if (currentTrack?.error) {
     return (
-      <div className={`min-h-screen ${themeClasses.background} flex items-center justify-center p-4`}>
-        <Card className={themeClasses.getCardClasses()}>
+      <div className={`min-h-screen ${styleClasses.background} flex items-center justify-center p-4`}>
+        <Card className={`${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow}`}>
           <CardContent className="p-8 text-center">
             <div className="flex flex-col items-center space-y-4">
               <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
@@ -198,61 +266,34 @@ export default function PublicDisplay() {
     )
   }
 
-  // Create display track - use current track or fall back to most recent track
-  const displayTrack = (() => {
-    // If we have a current track, use it
-    if (currentTrack && currentTrack.name) {
-      return currentTrack
-    }
+  // Use the track data directly from the API (no more fallbacks needed)
+  const track = currentTrack || {
+    name: "Loading...",
+    artists: [{ name: "Please wait" }],
+    album: { name: "", images: [] },
+    duration_ms: 0,
+    is_playing: false,
+    progress_ms: 0,
+    recent_tracks: []
+  }
 
-    // If no current track but we have recent tracks, use the most recent one
-    if (currentTrack?.recent_tracks && currentTrack.recent_tracks.length > 0) {
-      const mostRecent = currentTrack.recent_tracks[0]
-      return {
-        name: mostRecent.name,
-        artists: mostRecent.artists,
-        album: mostRecent.album,
-        duration_ms: mostRecent.duration_ms,
-        is_playing: false,
-        progress_ms: mostRecent.duration_ms, // Show as completed
-        external_urls: mostRecent.external_urls,
-        recent_tracks: currentTrack.recent_tracks
-      }
-    }
-
-    // Fallback to placeholder only if no data at all
-    return {
-      name: "No track playing",
-      artists: [{ name: "Not listening" }],
-      album: {
-        name: "No album",
-        images: []
-      },
-      duration_ms: 0,
-      is_playing: false,
-      progress_ms: 0,
-      recent_tracks: currentTrack?.recent_tracks || []
-    }
-  })()
-
-  const track = displayTrack
   const albumImage = getMediumImage(track.album.images)
   const currentProgress = track.is_playing ? fakeProgress : (track.progress_ms || 0)
   const duration = track.duration_ms
   const progressPercent = duration > 0 ? (currentProgress / duration) * 100 : 0
 
   return (
-    <div className={`min-h-screen ${themeClasses.background} flex items-center justify-center p-4`}>
-      <div className={`w-full ${track.recent_tracks && track.recent_tracks.length > 0 ? 'max-w-6xl' : 'max-w-2xl'} ${themeClasses.shadow}`}>
+    <div className={`min-h-screen ${styleClasses.background} flex items-center justify-center p-4`}>
+      <div className={`w-full ${track.recent_tracks && track.recent_tracks.length > 0 ? 'max-w-6xl' : 'max-w-2xl'} ${styleClasses.shadow}`}>
         <div className={`${track.recent_tracks && track.recent_tracks.length > 0 ? 'grid grid-cols-1 lg:grid-cols-3 gap-6' : ''}`}>
           {/* Main Track Display */}
-          <Card className={`${track.recent_tracks && track.recent_tracks.length > 0 ? 'lg:col-span-2' : ''} ${themeClasses.getCardClasses()}`}>
+          <Card className={`${track.recent_tracks && track.recent_tracks.length > 0 ? 'lg:col-span-2' : ''} ${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow}`}>
             <CardContent className="p-8">
               {/* Vertical stacked layout - everything centered */}
               <div className="flex flex-col items-center text-center space-y-6">
                 {/* Album Art - Largest element at the top */}
                 <div className="relative">
-                  {albumImage && track.name !== "No track playing" ? (
+                  {albumImage && track.name !== "Loading..." && track.name !== "No recent tracks available" ? (
                     <Image
                       src={albumImage}
                       alt={`${track.album.name} cover`}
@@ -274,35 +315,35 @@ export default function PublicDisplay() {
                 <div className="w-full space-y-4 max-w-md">
                   {/* Song Title - Directly under the image */}
                   <div>
-                    <h1 className={`text-3xl font-bold ${track.name === "No track playing" ? themeClasses.secondaryText : themeClasses.text}`}>
+                    <h1 className={`text-3xl font-bold ${track.name === "Loading..." || track.name === "No recent tracks available" ? styleClasses.secondaryText : styleClasses.text}`}>
                       {track.name}
                     </h1>
                   </div>
 
                   {/* Artist - Under the song title */}
-                  <div className={`${themeClasses.secondaryText}`}>
+                  <div className={`${styleClasses.secondaryText}`}>
                     <p className="text-xl">
                       {track.artists.map((artist: { name: string }) => artist.name).join(', ')}
                     </p>
                   </div>
 
                   {/* Album - Under the artist */}
-                  <div className={`text-lg ${themeClasses.secondaryText}`}>
+                  <div className={`text-lg ${styleClasses.secondaryText}`}>
                     <p>
                       from <span className="font-medium">{track.album.name}</span>
                     </p>
                   </div>
 
                   {/* Progress and Duration - Under everything else */}
-                  {track.name !== "No track playing" && (
+                  {track.name !== "Loading..." && track.name !== "No recent tracks available" && (
                     <div className="space-y-3 w-full">
-                      <div className={`w-full ${themeClasses.getProgressClasses().background} rounded-full h-2`}>
+                      <div className={`w-full ${styleClasses.progressBackground} rounded-full h-2`}>
                         <div
-                          className={`${themeClasses.getProgressClasses().bar} h-2 rounded-full transition-all duration-1000 ease-linear`}
+                          className={`${styleClasses.progressBar} h-2 rounded-full transition-all duration-1000 ease-linear`}
                           style={{ width: `${Math.min(progressPercent, 100)}%` }}
                         ></div>
                       </div>
-                      <div className={`flex items-center justify-between text-sm ${themeClasses.secondaryText}`}>
+                      <div className={`flex items-center justify-between text-sm ${styleClasses.secondaryText}`}>
                         <span>{formatDuration(currentProgress)}</span>
                         <div className="flex items-center space-x-1">
                           <Clock className="h-3 w-3" />
@@ -316,18 +357,16 @@ export default function PublicDisplay() {
                   <div className="flex flex-col items-center space-y-2 pt-2">
                     <div className="flex items-center space-x-2">
                       <div className={`w-2 h-2 rounded-full ${track.is_playing ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-                      <span className={`text-sm ${themeClasses.secondaryText}`}>
-                        {track.name === "No track playing"
-                          ? 'Not listening'
+                      <span className={`text-sm ${styleClasses.secondaryText}`}>
+                        {track.name === "Loading..." || track.name === "No recent tracks available"
+                          ? 'Loading...'
                           : track.is_playing
                             ? 'Now playing'
-                            : currentTrack && currentTrack.name
-                              ? 'Paused'
-                              : 'Last played'
+                            : 'Last played'
                         }
                       </span>
                     </div>
-                    <span className={`text-xs ${themeClasses.secondaryText}`}>
+                    <span className={`text-xs ${styleClasses.secondaryText}`}>
                       Updated {lastUpdate.toLocaleTimeString()}
                     </span>
                   </div>
@@ -335,10 +374,10 @@ export default function PublicDisplay() {
               </div>
 
               {/* Credits Section - only show for real tracks */}
-              {currentTrack?.credits && track.name !== "No track playing" && (
+              {currentTrack?.credits && track.name !== "Loading..." && track.name !== "No recent tracks available" && (
                 <div className="mt-6 pt-4 border-t">
-                  <h3 className={`text-sm font-medium mb-2 ${themeClasses.text}`}>Track Credits</h3>
-                  <div className={`space-y-2 text-sm ${themeClasses.secondaryText}`}>
+                  <h3 className={`text-sm font-medium mb-2 ${styleClasses.text}`}>Track Credits</h3>
+                  <div className={`space-y-2 text-sm ${styleClasses.secondaryText}`}>
                     <div>
                       <span className="font-medium">Track ID:</span> {currentTrack.credits.track_id}
                     </div>
@@ -369,7 +408,7 @@ export default function PublicDisplay() {
               {/* Powered by - only show when no recent tracks */}
               {(!track.recent_tracks || track.recent_tracks.length === 0) && (
                 <div className="mt-6 pt-4 border-t text-center">
-                  <p className={`text-xs ${themeClasses.secondaryText}`}>
+                  <p className={`text-xs ${styleClasses.secondaryText}`}>
                     Powered by <span className="font-medium">SpotifyUtil</span>
                   </p>
                 </div>
@@ -379,15 +418,15 @@ export default function PublicDisplay() {
 
           {/* Recent Tracks Sidebar - always show if there are recent tracks */}
           {track.recent_tracks && track.recent_tracks.length > 0 && (
-            <Card className={`lg:col-span-1 ${themeClasses.getCardClasses()}`}>
+            <Card className={`lg:col-span-1 ${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow}`}>
               <CardContent className="p-6">
-                <h3 className={`text-lg font-semibold mb-4 flex items-center ${themeClasses.text}`}>
+                <h3 className={`text-lg font-semibold mb-4 flex items-center ${styleClasses.text}`}>
                   <Clock className="h-4 w-4 mr-2" />
                   Recently Played
                 </h3>
                 <div className="space-y-3 max-h-[500px] overflow-y-auto">
                   {track.recent_tracks.map((recentTrack, index) => (
-                    <div key={index} className={`group ${themeClasses.hover} p-2 rounded-lg transition-colors`}>
+                    <div key={index} className={`group ${styleClasses.hover} p-2 rounded-lg transition-colors`}>
                       <div className="flex items-start space-x-3">
                         {recentTrack.album.images[0] && (
                           <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
@@ -400,19 +439,19 @@ export default function PublicDisplay() {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className={`font-medium truncate text-sm leading-tight mb-1 ${themeClasses.text}`}>{recentTrack.name}</p>
-                          <p className={`text-xs truncate mb-1 ${themeClasses.secondaryText}`}>
+                          <p className={`font-medium truncate text-sm leading-tight mb-1 ${styleClasses.text}`}>{recentTrack.name}</p>
+                          <p className={`text-xs truncate mb-1 ${styleClasses.secondaryText}`}>
                             {recentTrack.artists.map(artist => artist.name).join(', ')}
                           </p>
                           <div className="flex items-center justify-between">
-                            <p className={`text-xs ${themeClasses.secondaryText}`}>
+                            <p className={`text-xs ${styleClasses.secondaryText}`}>
                               {new Date(recentTrack.played_at).toLocaleTimeString()}
                             </p>
                             <a
                               href={recentTrack.external_urls.spotify}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className={`text-xs ${themeClasses.accent} hover:opacity-80 opacity-0 group-hover:opacity-100 transition-opacity`}
+                              className={`text-xs ${styleClasses.accent} hover:opacity-80 opacity-0 group-hover:opacity-100 transition-opacity`}
                             >
                               Open
                             </a>
@@ -425,7 +464,7 @@ export default function PublicDisplay() {
 
                 {/* Powered by - in sidebar when recent tracks exist */}
                 <div className="mt-4 pt-4 border-t text-center">
-                  <p className={`text-xs ${themeClasses.secondaryText}`}>
+                  <p className={`text-xs ${styleClasses.secondaryText}`}>
                     Powered by <span className="font-medium">SpotifyUtil</span>
                   </p>
                 </div>

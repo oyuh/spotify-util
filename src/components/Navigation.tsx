@@ -4,7 +4,7 @@ import { useSession, signIn, signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Settings, LogIn, LogOut, Music, Palette } from 'lucide-react'
 import SettingsModal from '@/components/SettingsModal'
-import ThemeSelector from '@/components/ThemeSelector'
+import AppThemeSelector from '@/components/AppThemeSelector'
 import Link from 'next/link'
 
 export default function Navigation() {
@@ -45,12 +45,12 @@ export default function Navigation() {
                 </Button>
               </Link>
 
-              <ThemeSelector>
+              <AppThemeSelector>
                 <Button variant="ghost" size="sm" className="hover:bg-accent transition-colors">
                   <Palette className="h-4 w-4 sm:mr-2 text-primary" />
                   <span className="hidden sm:inline">Themes</span>
                 </Button>
-              </ThemeSelector>
+              </AppThemeSelector>
 
               <SettingsModal>
                 <Button variant="ghost" size="sm" className="hover:bg-accent transition-colors">

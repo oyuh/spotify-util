@@ -76,16 +76,20 @@ export async function GET(
     // If we found an account, check privacy settings
     if (account) {
       console.log('Checking privacy settings for userId:', account.userId)
-      const userPrefs = await getUserPreferences(account.userId)
+      const userPrefs = await getUserPreferences(account.userId.toString())
       console.log('User preferences found:', userPrefs ? 'Yes' : 'No')
-      console.log('Privacy settings:', userPrefs?.privacySettings)
+      console.log('Privacy settings:', JSON.stringify(userPrefs?.privacySettings, null, 2))
 
       // If user has privacy enabled (isPublic = false), they can only be accessed via slug
-      if (userPrefs && !userPrefs.privacySettings.isPublic) {
+      if (userPrefs && userPrefs.privacySettings && userPrefs.privacySettings.isPublic === false) {
         console.log('🔒 PRIVACY CHECK: User has privacy enabled, access denied via Spotify ID')
+        console.log('User should use slug instead:', userPrefs.privacySettings.customSlug)
         return NextResponse.json({ error: "Not found" }, { status: 404 })
       } else {
         console.log('✅ PRIVACY CHECK: User is public or no preferences found, allowing access')
+        if (userPrefs?.privacySettings) {
+          console.log('Privacy settings isPublic value:', userPrefs.privacySettings.isPublic)
+        }
       }
     }    // Let's also check what accounts exist
     if (!account) {
@@ -123,7 +127,7 @@ export async function GET(
       console.log('Spotify response:', currentTrack ? 'Got data' : 'No data')
 
       if (!currentTrack || !currentTrack.item) {
-        console.log('No current track or item')
+        console.log('No current track or item - fetching last played track instead')
 
         // Even when no track is playing, check if user wants recent tracks shown
         let sessionUserId = account.userId
@@ -146,34 +150,104 @@ export async function GET(
         const userPreferences = await getUserPreferences(sessionUserId)
         console.log('User preferences found:', userPreferences ? 'Yes' : 'No')
 
-        // Fetch recent tracks if user has that setting enabled
+        // ALWAYS fetch recent tracks to get the last played song
         let recentTracksData = null
-        if (userPreferences?.publicDisplaySettings?.showRecentTracks) {
-          try {
-            console.log('Fetching recent tracks even though no current track...')
-            const recentTracks = await getSpotifyData(accessToken, `/me/player/recently-played?limit=${userPreferences.publicDisplaySettings.numberOfRecentTracks || 5}`)
-            if (recentTracks && recentTracks.items) {
-              recentTracksData = recentTracks.items.map((item: any) => ({
-                name: item.track.name,
-                artists: item.track.artists,
-                album: item.track.album,
-                duration_ms: item.track.duration_ms,
-                external_urls: item.track.external_urls,
-                played_at: item.played_at
-              }))
-              console.log('Found recent tracks:', recentTracksData.length)
-            }
-          } catch (error) {
-            console.log('Error fetching recent tracks when no current track:', error)
+        let lastPlayedTrack = null
+        try {
+          console.log('Fetching recent tracks to get last played song...')
+          const recentTracks = await getSpotifyData(accessToken, `/me/player/recently-played?limit=${userPreferences?.publicDisplaySettings?.numberOfRecentTracks || 10}`)
+          if (recentTracks && recentTracks.items && recentTracks.items.length > 0) {
+            recentTracksData = recentTracks.items.map((item: any) => ({
+              name: item.track.name,
+              artists: item.track.artists,
+              album: item.track.album,
+              duration_ms: item.track.duration_ms,
+              external_urls: item.track.external_urls,
+              played_at: item.played_at
+            }))
+
+            // Use the most recent track as the main display
+            lastPlayedTrack = recentTracks.items[0].track
+            console.log('Using last played track as main display:', lastPlayedTrack.name)
           }
+        } catch (error) {
+          console.log('Error fetching recent tracks when no current track:', error)
         }
 
+        // If we have a last played track, return it as the main track
+        if (lastPlayedTrack) {
+          const response: any = {
+            name: lastPlayedTrack.name,
+            is_playing: false, // It's not currently playing
+            duration_ms: lastPlayedTrack.duration_ms,
+            progress_ms: lastPlayedTrack.duration_ms, // Show as completed
+          }
+
+          // Apply user preferences for data visibility
+          if (userPreferences?.publicDisplaySettings) {
+            const settings = userPreferences.publicDisplaySettings
+
+            if (settings.showArtist) {
+              response.artists = lastPlayedTrack.artists
+            } else {
+              response.artists = []
+            }
+
+            if (settings.showAlbum) {
+              response.album = lastPlayedTrack.album
+            } else {
+              response.album = { name: '', images: [] }
+            }
+
+            if (settings.showCredits) {
+              response.credits = {
+                spotify_url: lastPlayedTrack.external_urls?.spotify,
+                artists: lastPlayedTrack.artists,
+                album: {
+                  name: lastPlayedTrack.album.name,
+                  spotify_url: lastPlayedTrack.album.external_urls?.spotify
+                },
+                track_id: lastPlayedTrack.id,
+                uri: lastPlayedTrack.uri
+              }
+            }
+
+            if (settings.showRecentTracks && recentTracksData) {
+              response.recent_tracks = recentTracksData
+            }
+          } else {
+            // Default behavior if no preferences found
+            response.artists = lastPlayedTrack.artists
+            response.album = lastPlayedTrack.album
+            response.credits = {
+              spotify_url: lastPlayedTrack.external_urls?.spotify,
+              artists: lastPlayedTrack.artists,
+              album: {
+                name: lastPlayedTrack.album.name,
+                spotify_url: lastPlayedTrack.album.external_urls?.spotify
+              },
+              track_id: lastPlayedTrack.id,
+              uri: lastPlayedTrack.uri
+            }
+            response.recent_tracks = recentTracksData || []
+          }
+
+          return NextResponse.json({
+            ...response,
+            preferences: userPreferences
+          })
+        }
+
+        // Fallback if no recent tracks available
         return NextResponse.json({
-          name: '',
-          artists: [],
+          name: 'No recent tracks available',
+          artists: [{ name: 'No data' }],
           album: { name: '', images: [] },
+          duration_ms: 0,
           is_playing: false,
-          recent_tracks: recentTracksData || []
+          progress_ms: 0,
+          recent_tracks: [],
+          preferences: userPreferences
         })
       }
 
@@ -270,6 +344,7 @@ export async function GET(
           }
         }
 
+        // Always show recent tracks if user has that setting enabled
         if (settings.showRecentTracks && recentTracksData) {
           response.recent_tracks = recentTracksData
         }
@@ -289,9 +364,14 @@ export async function GET(
           track_id: currentTrack.item.id,
           uri: currentTrack.item.uri
         }
+        // Always fetch recent tracks in default mode too
+        response.recent_tracks = recentTracksData || []
       }
 
-      return NextResponse.json(response)
+      return NextResponse.json({
+        ...response,
+        preferences: userPreferences
+      })
     } catch (error) {
       // If we get a 401, try to refresh the token
       if (error instanceof Error && error.message.includes('401')) {
@@ -323,41 +403,111 @@ export async function GET(
           console.log('Spotify response after refresh:', currentTrack ? 'Got data' : 'No data')
 
           if (!currentTrack || !currentTrack.item) {
-            console.log('No current track or item after refresh')
+            console.log('No current track or item after refresh - fetching last played track instead')
 
             // Even when no track is playing, check if user wants recent tracks shown
             console.log('Looking for user preferences with userId after refresh:', account.userId)
             const userPreferences = await getUserPreferences(account.userId)
             console.log('User preferences found after refresh:', userPreferences ? 'Yes' : 'No')
 
-            // Fetch recent tracks if user has that setting enabled
+            // ALWAYS fetch recent tracks to get the last played song
             let recentTracksData = null
-            if (userPreferences?.publicDisplaySettings?.showRecentTracks) {
-              try {
-                console.log('Fetching recent tracks after refresh even though no current track...')
-                const recentTracks = await getSpotifyData(accessToken, `/me/player/recently-played?limit=${userPreferences.publicDisplaySettings.numberOfRecentTracks || 5}`)
-                if (recentTracks && recentTracks.items) {
-                  recentTracksData = recentTracks.items.map((item: any) => ({
-                    name: item.track.name,
-                    artists: item.track.artists,
-                    album: item.track.album,
-                    duration_ms: item.track.duration_ms,
-                    external_urls: item.track.external_urls,
-                    played_at: item.played_at
-                  }))
-                  console.log('Found recent tracks after refresh:', recentTracksData.length)
-                }
-              } catch (error) {
-                console.log('Error fetching recent tracks when no current track after refresh:', error)
+            let lastPlayedTrack = null
+            try {
+              console.log('Fetching recent tracks to get last played song after refresh...')
+              const recentTracks = await getSpotifyData(accessToken, `/me/player/recently-played?limit=${userPreferences?.publicDisplaySettings?.numberOfRecentTracks || 10}`)
+              if (recentTracks && recentTracks.items && recentTracks.items.length > 0) {
+                recentTracksData = recentTracks.items.map((item: any) => ({
+                  name: item.track.name,
+                  artists: item.track.artists,
+                  album: item.track.album,
+                  duration_ms: item.track.duration_ms,
+                  external_urls: item.track.external_urls,
+                  played_at: item.played_at
+                }))
+
+                // Use the most recent track as the main display
+                lastPlayedTrack = recentTracks.items[0].track
+                console.log('Using last played track as main display after refresh:', lastPlayedTrack.name)
               }
+            } catch (error) {
+              console.log('Error fetching recent tracks when no current track after refresh:', error)
             }
 
+            // If we have a last played track, return it as the main track
+            if (lastPlayedTrack) {
+              const response: any = {
+                name: lastPlayedTrack.name,
+                is_playing: false, // It's not currently playing
+                duration_ms: lastPlayedTrack.duration_ms,
+                progress_ms: lastPlayedTrack.duration_ms, // Show as completed
+              }
+
+              // Apply user preferences for data visibility
+              if (userPreferences?.publicDisplaySettings) {
+                const settings = userPreferences.publicDisplaySettings
+
+                if (settings.showArtist) {
+                  response.artists = lastPlayedTrack.artists
+                } else {
+                  response.artists = []
+                }
+
+                if (settings.showAlbum) {
+                  response.album = lastPlayedTrack.album
+                } else {
+                  response.album = { name: '', images: [] }
+                }
+
+                if (settings.showCredits) {
+                  response.credits = {
+                    spotify_url: lastPlayedTrack.external_urls?.spotify,
+                    artists: lastPlayedTrack.artists,
+                    album: {
+                      name: lastPlayedTrack.album.name,
+                      spotify_url: lastPlayedTrack.album.external_urls?.spotify
+                    },
+                    track_id: lastPlayedTrack.id,
+                    uri: lastPlayedTrack.uri
+                  }
+                }
+
+                if (settings.showRecentTracks && recentTracksData) {
+                  response.recent_tracks = recentTracksData
+                }
+              } else {
+                // Default behavior if no preferences found
+                response.artists = lastPlayedTrack.artists
+                response.album = lastPlayedTrack.album
+                response.credits = {
+                  spotify_url: lastPlayedTrack.external_urls?.spotify,
+                  artists: lastPlayedTrack.artists,
+                  album: {
+                    name: lastPlayedTrack.album.name,
+                    spotify_url: lastPlayedTrack.album.external_urls?.spotify
+                  },
+                  track_id: lastPlayedTrack.id,
+                  uri: lastPlayedTrack.uri
+                }
+                response.recent_tracks = recentTracksData || []
+              }
+
+              return NextResponse.json({
+                ...response,
+                preferences: userPreferences
+              })
+            }
+
+            // Fallback if no recent tracks available
             return NextResponse.json({
-              name: '',
-              artists: [],
+              name: 'No recent tracks available',
+              artists: [{ name: 'No data' }],
               album: { name: '', images: [] },
+              duration_ms: 0,
               is_playing: false,
-              recent_tracks: recentTracksData || []
+              progress_ms: 0,
+              recent_tracks: [],
+              preferences: userPreferences
             })
           }
 
@@ -375,6 +525,26 @@ export async function GET(
           const response: any = {
             name: currentTrack.item.name,
             is_playing: currentTrack.is_playing
+          }
+
+          // Fetch recent tracks if needed
+          let recentTracksData = null
+          if (userPreferences?.publicDisplaySettings?.showRecentTracks) {
+            try {
+              const recentTracks = await getSpotifyData(accessToken, `/me/player/recently-played?limit=${userPreferences.publicDisplaySettings.numberOfRecentTracks || 5}`)
+              if (recentTracks && recentTracks.items) {
+                recentTracksData = recentTracks.items.map((item: any) => ({
+                  name: item.track.name,
+                  artists: item.track.artists,
+                  album: item.track.album,
+                  duration_ms: item.track.duration_ms,
+                  external_urls: item.track.external_urls,
+                  played_at: item.played_at
+                }))
+              }
+            } catch (error) {
+              console.log('Error fetching recent tracks after refresh:', error)
+            }
           }
 
           // Apply user preferences for data visibility
@@ -402,7 +572,21 @@ export async function GET(
             }
 
             if (settings.showCredits) {
-              response.external_urls = currentTrack.item.external_urls
+              response.credits = {
+                spotify_url: currentTrack.item.external_urls?.spotify,
+                artists: currentTrack.item.artists,
+                album: {
+                  name: currentTrack.item.album.name,
+                  spotify_url: currentTrack.item.album.external_urls?.spotify
+                },
+                track_id: currentTrack.item.id,
+                uri: currentTrack.item.uri
+              }
+            }
+
+            // Always show recent tracks if user has that setting enabled
+            if (settings.showRecentTracks && recentTracksData) {
+              response.recent_tracks = recentTracksData
             }
           } else {
             // Default behavior if no preferences found
@@ -410,10 +594,24 @@ export async function GET(
             response.album = currentTrack.item.album
             response.duration_ms = currentTrack.item.duration_ms
             response.progress_ms = currentTrack.progress_ms
-            response.external_urls = currentTrack.item.external_urls
+            response.credits = {
+              spotify_url: currentTrack.item.external_urls?.spotify,
+              artists: currentTrack.item.artists,
+              album: {
+                name: currentTrack.item.album.name,
+                spotify_url: currentTrack.item.album.external_urls?.spotify
+              },
+              track_id: currentTrack.item.id,
+              uri: currentTrack.item.uri
+            }
+            // Always fetch recent tracks in default mode too
+            response.recent_tracks = recentTracksData || []
           }
 
-          return NextResponse.json(response)
+          return NextResponse.json({
+            ...response,
+            preferences: userPreferences
+          })
         } catch (refreshError) {
           console.error('Display API - Failed to refresh token:', refreshError)
           throw error // Re-throw original error

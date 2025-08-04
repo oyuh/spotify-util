@@ -16,10 +16,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SpotifyUtil - Share Your Music Like Never Before",
+  title: "SpotifyUtil",
   description: "Create beautiful, customizable displays of your Spotify activity. Perfect for streamers, music lovers, and anyone who wants to share their musical journey.",
   icons: {
     icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
       { url: '/favicon.ico' },
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },

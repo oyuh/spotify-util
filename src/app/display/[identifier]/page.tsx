@@ -56,6 +56,14 @@ export default function PublicDisplay() {
   const [lastRealProgress, setLastRealProgress] = useState(0)
   const [lastUpdateTime, setLastUpdateTime] = useState(Date.now())
   const [userStyle, setUserStyle] = useState<string>('minimal')
+  const [displayName, setDisplayName] = useState<string>('SpotifyUtil')
+
+  // Update document title when display name changes
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = displayName
+    }
+  }, [displayName])
 
   useEffect(() => {
     const fetchUserStyle = async () => {
@@ -84,6 +92,15 @@ export default function PublicDisplay() {
           const userData = await response.json()
           console.log('🎨 Display Page: API response data:', userData)
           console.log('🎨 Display Page: Preferences found:', userData.preferences)
+
+          // Set display name from user preferences or identifier
+          if (userData.preferences?.publicDisplaySettings?.displayName) {
+            setDisplayName(userData.preferences.publicDisplaySettings.displayName)
+          } else if (userData.preferences?.slug) {
+            setDisplayName(userData.preferences.slug)
+          } else {
+            setDisplayName(identifier)
+          }
 
           if (userData.preferences?.displaySettings?.style) {
             const styleId = userData.preferences.displaySettings.style
@@ -114,10 +131,12 @@ export default function PublicDisplay() {
 
         // Use default style if no preferences found
         console.log('🎨 Display Page: Falling back to minimal style')
+        setDisplayName(identifier) // Set display name to identifier as fallback
         setStyle('minimal')
       } catch (error) {
         console.error('🎨 Display Page: Error fetching user style:', error)
         // Use default style on error
+        setDisplayName(identifier) // Set display name to identifier as fallback
         setStyle('minimal')
       }
     }

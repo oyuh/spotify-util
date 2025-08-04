@@ -7,11 +7,16 @@ import { Settings, LogIn, LogOut, Music, Palette } from 'lucide-react'
 import SettingsModal from '@/components/SettingsModal'
 import AppThemeSelector from '@/components/AppThemeSelector'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 export default function Navigation() {
   const { data: session, status } = useSession()
   const [showNav, setShowNav] = useState(true)
   const [isHoveringTop, setIsHoveringTop] = useState(false)
+  const pathname = usePathname()
+  
+  // Check if we're on a display page
+  const isDisplayPage = pathname?.startsWith('/display/')
 
   // Auto-hide navigation after 10 seconds, but show on hover
   useEffect(() => {
@@ -53,8 +58,11 @@ export default function Navigation() {
           onMouseLeave={() => setIsHoveringTop(false)}
         />
 
-        <nav className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-background/95 backdrop-blur-md border border-border/50 rounded-2xl shadow-xl shadow-black/10 transition-all duration-500 ease-out ${
+        <nav className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 backdrop-blur-md border rounded-2xl shadow-xl shadow-black/10 transition-all duration-500 ease-out ${
           showNav || isHoveringTop ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0'
+        } ${isDisplayPage 
+          ? 'bg-black/95 border-gray-700/50' 
+          : 'bg-background/95 border-border/50'
         }`}>
           <div className="px-4 flex h-14 items-center">
             <div className="mr-4 flex">
@@ -77,8 +85,11 @@ export default function Navigation() {
         onMouseLeave={() => setIsHoveringTop(false)}
       />
 
-      <nav className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-background/95 backdrop-blur-md border border-border/50 rounded-2xl shadow-xl shadow-black/10 transition-all duration-500 ease-out ${
+      <nav className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 backdrop-blur-md border rounded-2xl shadow-xl shadow-black/10 transition-all duration-500 ease-out ${
         showNav || isHoveringTop ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0'
+      } ${isDisplayPage 
+        ? 'bg-black/95 border-gray-700/50' 
+        : 'bg-background/95 border-border/50'
       }`}>
       <div className="px-4 flex h-14 items-center">
         <div className="mr-4 flex items-center">
@@ -86,7 +97,11 @@ export default function Navigation() {
             <div className="mr-2 h-7 w-7 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
               <Music className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
-            <span className="font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">SpotifyUtil</span>
+            <span className={`font-bold bg-gradient-to-r bg-clip-text text-transparent ${
+              isDisplayPage 
+                ? 'from-white to-gray-300' 
+                : 'from-foreground to-foreground/80'
+            }`}>SpotifyUtil</span>
           </Link>
         </div>
 
@@ -94,20 +109,34 @@ export default function Navigation() {
           {session ? (
             <>
               <Link href="/dashboard" className="hidden sm:block">
-                <Button variant="ghost" size="sm" className="font-medium hover:bg-accent transition-colors">
+                <Button variant="ghost" size="sm" className={`font-medium transition-colors ${
+                  isDisplayPage 
+                    ? 'text-white hover:bg-gray-800' 
+                    : 'hover:bg-accent'
+                }`}>
                   Dashboard
                 </Button>
               </Link>
 
               <AppThemeSelector>
-                <Button variant="ghost" size="sm" className="hover:bg-accent transition-colors">
-                  <Palette className="h-4 w-4 sm:mr-2 text-primary" />
+                <Button variant="ghost" size="sm" className={`transition-colors ${
+                  isDisplayPage 
+                    ? 'text-white hover:bg-gray-800' 
+                    : 'hover:bg-accent'
+                }`}>
+                  <Palette className={`h-4 w-4 sm:mr-2 ${
+                    isDisplayPage ? 'text-green-400' : 'text-primary'
+                  }`} />
                   <span className="hidden sm:inline">Themes</span>
                 </Button>
               </AppThemeSelector>
 
               <SettingsModal>
-                <Button variant="ghost" size="sm" className="hover:bg-accent transition-colors">
+                <Button variant="ghost" size="sm" className={`transition-colors ${
+                  isDisplayPage 
+                    ? 'text-white hover:bg-gray-800' 
+                    : 'hover:bg-accent'
+                }`}>
                   <Settings className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">Settings</span>
                 </Button>
@@ -117,7 +146,11 @@ export default function Navigation() {
                 variant="outline"
                 size="sm"
                 onClick={() => signOut()}
-                className="font-medium border-border hover:bg-accent transition-colors"
+                className={`font-medium transition-colors ${
+                  isDisplayPage 
+                    ? 'border-gray-700 text-white hover:bg-gray-800' 
+                    : 'border-border hover:bg-accent'
+                }`}
               >
                 <LogOut className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Sign Out</span>

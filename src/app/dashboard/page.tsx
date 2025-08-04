@@ -142,16 +142,101 @@ export default function Dashboard() {
 
         <Tabs defaultValue="music" className="space-y-6">
           <div className="flex items-center justify-between">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="music">🎵 Music</TabsTrigger>
               <TabsTrigger value="displays">🔗 Display Links</TabsTrigger>
-              <TabsTrigger value="streaming">📺 Streaming</TabsTrigger>
               <TabsTrigger value="settings">⚙️ Settings</TabsTrigger>
             </TabsList>
           </div>
 
           {/* Music Tab */}
           <TabsContent value="music" className="space-y-6">
+            {/* Quick Links Section */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Eye className="h-5 w-5 text-primary" />
+                    <span>Public Display</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Share your music with anyone
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="bg-muted p-3 rounded-lg text-sm font-mono break-all">
+                    {publicDisplayUrl}
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      onClick={() => copyToClipboard(publicDisplayUrl, 'public')}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center space-x-2"
+                    >
+                      {copiedUrl === 'public' ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                      <span>{copiedUrl === 'public' ? 'Copied!' : 'Copy'}</span>
+                    </Button>
+                    <Button
+                      onClick={() => window.open(publicDisplayUrl, '_blank')}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center space-x-2"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      <span>Open</span>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Monitor className="h-5 w-5 text-primary" />
+                    <span>Streaming Overlay</span>
+                  </CardTitle>
+                  <CardDescription>
+                    For OBS and streaming software
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="bg-muted p-3 rounded-lg text-sm font-mono break-all">
+                    {streamingUrl}
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      onClick={() => copyToClipboard(streamingUrl, 'streaming')}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center space-x-2"
+                    >
+                      {copiedUrl === 'streaming' ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                      <span>{copiedUrl === 'streaming' ? 'Copied!' : 'Copy'}</span>
+                    </Button>
+                    <Button
+                      onClick={() => window.open(streamingUrl, '_blank')}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center space-x-2"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      <span>Open</span>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Music Content */}
             <div className="grid gap-6 md:grid-cols-2">
               <Card>
                 <CardHeader>
@@ -166,10 +251,12 @@ export default function Dashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle>Recent Tracks</CardTitle>
-                  <CardDescription>Your last 20 played songs</CardDescription>
+                  <CardDescription>Your recently played songs</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <RecentTracks />
+                <CardContent className="p-0">
+                  <div className="max-h-96 overflow-y-auto p-6 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted hover:scrollbar-thumb-muted-foreground">
+                    <RecentTracks showHeader={false} limit={50} />
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -270,56 +357,6 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-
-          {/* Streaming Tab */}
-          <TabsContent value="streaming" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Streaming Integration</CardTitle>
-                <CardDescription>
-                  Tools and settings for content creators
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <h4 className="font-medium">For OBS Studio</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Use the streaming overlay URL in a Browser Source for seamless integration
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className="font-medium">For Streamlabs</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Add as a Custom Widget using the streaming URL
-                    </p>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <h4 className="font-medium">Customization Options</h4>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="p-4 border rounded-lg">
-                      <h5 className="font-medium mb-2">Transparent Mode</h5>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Perfect for overlays on top of your content
-                      </p>
-                      <Badge variant="outline">Default</Badge>
-                    </div>
-                    <div className="p-4 border rounded-lg">
-                      <h5 className="font-medium mb-2">Auto-Refresh</h5>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Updates every 5 seconds automatically
-                      </p>
-                      <Badge variant="outline">Enabled</Badge>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* Settings Tab */}

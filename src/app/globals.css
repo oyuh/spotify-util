@@ -126,4 +126,40 @@
     -webkit-background-clip: text;
     background-clip: text;
   }
+
+  /* Custom scrollbar styling for better aesthetics */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 10px;
+    transition: background-color 0.2s ease;
+  }
+
+  .scrollbar-thin:hover::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  /* Hide scrollbar for clean look but keep functionality */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }

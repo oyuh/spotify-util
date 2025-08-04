@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -17,88 +18,94 @@ interface RecentTracksProps {
 
 export function RecentTracks({ limit = 20, showHeader = true, compact = false }: RecentTracksProps) {
   const { recentTracks, loading, error, refetch } = useRecentTracks(limit)
+  const [showAll, setShowAll] = useState(false)
+
+  // Show only first 10 initially, unless showAll is true
+  const displayLimit = showAll ? recentTracks?.items?.length || 0 : Math.min(10, recentTracks?.items?.length || 0)
 
   if (loading) {
-    return (
-      <Card>
-        {showHeader && (
-          <CardHeader>
-            <CardTitle>Recently Played</CardTitle>
-          </CardHeader>
-        )}
-        <CardContent className="space-y-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center space-x-4 animate-pulse">
-              <div className="w-12 h-12 bg-muted rounded-lg"></div>
-              <div className="flex-1 space-y-2">
-                <div className="h-4 bg-muted rounded w-3/4"></div>
-                <div className="h-3 bg-muted rounded w-1/2"></div>
-              </div>
-              <div className="h-3 bg-muted rounded w-16"></div>
+    const content = (
+      <div className="space-y-4">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center space-x-4 animate-pulse">
+            <div className="w-12 h-12 bg-muted rounded-lg"></div>
+            <div className="flex-1 space-y-2">
+              <div className="h-4 bg-muted rounded w-3/4"></div>
+              <div className="h-3 bg-muted rounded w-1/2"></div>
             </div>
-          ))}
+            <div className="h-3 bg-muted rounded w-16"></div>
+          </div>
+        ))}
+      </div>
+    )
+
+    return showHeader ? (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recently Played</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {content}
         </CardContent>
       </Card>
-    )
+    ) : content
   }
 
   if (error) {
-    return (
+    const content = (
+      <div className="text-center text-destructive py-8">
+        <Music className="h-8 w-8 mx-auto mb-2 opacity-50" />
+        <p className="font-medium">Failed to load recent tracks</p>
+        <p className="text-sm opacity-75 mt-1">{error}</p>
+        <Button onClick={refetch} variant="outline" size="sm" className="mt-3">
+          Try Again
+        </Button>
+      </div>
+    )
+
+    return showHeader ? (
       <Card className="border-destructive/50">
-        {showHeader && (
-          <CardHeader>
-            <CardTitle>Recently Played</CardTitle>
-          </CardHeader>
-        )}
+        <CardHeader>
+          <CardTitle>Recently Played</CardTitle>
+        </CardHeader>
         <CardContent>
-          <div className="text-center text-destructive py-8">
-            <Music className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="font-medium">Failed to load recent tracks</p>
-            <p className="text-sm opacity-75 mt-1">{error}</p>
-            <Button onClick={refetch} variant="outline" size="sm" className="mt-3">
-              Try Again
-            </Button>
-          </div>
+          {content}
         </CardContent>
       </Card>
-    )
+    ) : content
   }
 
   if (!recentTracks?.items || recentTracks.items.length === 0) {
-    return (
+    const content = (
+      <div className="text-center text-muted-foreground py-12">
+        <Music className="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p className="font-medium">No recent tracks found</p>
+        <p className="text-sm mt-2">Your recently played tracks will appear here</p>
+        <Button onClick={refetch} variant="outline" size="sm" className="mt-3">
+          Refresh
+        </Button>
+      </div>
+    )
+
+    return showHeader ? (
       <Card>
-        {showHeader && (
-          <CardHeader>
-            <CardTitle>Recently Played</CardTitle>
-          </CardHeader>
-        )}
+        <CardHeader>
+          <CardTitle>Recently Played</CardTitle>
+        </CardHeader>
         <CardContent>
-          <div className="text-center text-muted-foreground py-12">
-            <Music className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="font-medium">No recent tracks found</p>
-            <p className="text-sm mt-2">Your recently played tracks will appear here</p>
-            <Button onClick={refetch} variant="outline" size="sm" className="mt-3">
-              Refresh
-            </Button>
-          </div>
+          {content}
         </CardContent>
       </Card>
-    )
+    ) : content
   }
 
-  return (
-    <Card>
-      {showHeader && (
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Recently Played</CardTitle>
-          <Button onClick={refetch} variant="outline" size="sm">
-            Refresh
-          </Button>
-        </CardHeader>
-      )}
-      <CardContent className={compact ? "p-4" : "p-6"}>
-        <div className={`space-y-${compact ? "2" : "4"}`}>
-          {recentTracks.items.map((item, index) => {
+  const tracksToShow = recentTracks.items.slice(0, displayLimit)
+  const hasMore = recentTracks.items.length > displayLimit
+
+  const content = (
+    <div className={compact ? "p-4" : "p-0"}>
+      <div className={`space-y-${compact ? "2" : "4"}`}>
+        {tracksToShow.map((item, index) => {
             const track = item.track
             const albumImage = getMediumImage(track.album.images)
             const playedAt = new Date(item.played_at)
@@ -173,15 +180,32 @@ export function RecentTracks({ limit = 20, showHeader = true, compact = false }:
           })}
         </div>
 
-        {/* Load More */}
-        {recentTracks.items.length === limit && (
+        {/* Show More / Show Less button */}
+        {recentTracks.items.length > 10 && (
           <div className="text-center mt-6">
-            <Button variant="outline" onClick={refetch}>
-              Load More
+            <Button
+              variant="outline"
+              onClick={() => setShowAll(!showAll)}
+              size="sm"
+            >
+              {showAll ? `Show Less` : `Show More (${recentTracks.items.length - 10} more)`}
             </Button>
           </div>
         )}
+      </div>
+    )
+
+  return showHeader ? (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Recently Played</CardTitle>
+        <Button onClick={refetch} variant="outline" size="sm">
+          Refresh
+        </Button>
+      </CardHeader>
+      <CardContent className={compact ? "p-4" : "p-6"}>
+        {content}
       </CardContent>
     </Card>
-  )
+  ) : content
 }

@@ -37,7 +37,18 @@ async function getSpotifyData(accessToken: string, endpoint: string) {
     throw new Error(`Spotify API error: ${response.status}`)
   }
 
-  return response.json()
+  // Check if response has content before parsing JSON
+  const text = await response.text()
+  if (!text || text.trim() === '') {
+    return null // Empty response
+  }
+
+  try {
+    return JSON.parse(text)
+  } catch (error) {
+    console.error('Failed to parse Spotify API response:', text)
+    throw new Error('Invalid JSON response from Spotify API')
+  }
 }
 
 export async function GET(

@@ -41,7 +41,18 @@ async function getSpotifyData(accessToken: string, endpoint: string) {
     throw new Error(`Spotify API error: ${response.status}`)
   }
 
-  return response.json()
+  // Check if response has content before parsing JSON
+  const text = await response.text()
+  if (!text || text.trim() === '') {
+    return null // Empty response
+  }
+
+  try {
+    return JSON.parse(text)
+  } catch (error) {
+    console.error('Failed to parse Spotify API response:', text)
+    throw new Error('Invalid JSON response from Spotify API')
+  }
 }
 
 export async function GET(
@@ -123,8 +134,9 @@ export async function GET(
 
     // Try to get current track, refresh token if needed
     try {
+      console.log('Calling Spotify API for currently-playing...')
       const currentTrack = await getSpotifyData(accessToken, '/me/player/currently-playing')
-      console.log('Spotify response:', currentTrack ? 'Got data' : 'No data')
+      console.log('Spotify currently-playing response:', currentTrack ? 'Got data' : 'No data (null)')
 
       if (!currentTrack || !currentTrack.item) {
         console.log('No current track or item - fetching last played track instead')
@@ -156,6 +168,8 @@ export async function GET(
         try {
           console.log('Fetching recent tracks to get last played song...')
           const recentTracks = await getSpotifyData(accessToken, `/me/player/recently-played?limit=${userPreferences?.publicDisplaySettings?.numberOfRecentTracks || 10}`)
+          console.log('Recent tracks response:', recentTracks ? `Got ${recentTracks.items?.length || 0} tracks` : 'No data')
+
           if (recentTracks && recentTracks.items && recentTracks.items.length > 0) {
             recentTracksData = recentTracks.items.map((item: any) => ({
               name: item.track.name,

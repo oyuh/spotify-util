@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Slider } from '@/components/ui/slider'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Copy, Settings, Eye, EyeOff, Shuffle, Link as LinkIcon, Palette, Monitor } from 'lucide-react'
@@ -380,24 +381,34 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
                     />
                   </div>
                   {preferences.publicDisplaySettings.showRecentTracks && (
-                    <div className="space-y-2">
-                      <Label htmlFor="recent-count">Number of Recent Tracks</Label>
-                      <Input
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="recent-count">Number of Recent Tracks</Label>
+                        <span className="text-sm text-muted-foreground font-medium">
+                          {preferences.publicDisplaySettings.numberOfRecentTracks}
+                        </span>
+                      </div>
+                      <Slider
                         id="recent-count"
-                        type="number"
-                        min="1"
-                        max="20"
-                        value={preferences.publicDisplaySettings.numberOfRecentTracks}
-                        onChange={(e) =>
+                        min={5}
+                        max={50}
+                        step={5}
+                        value={[preferences.publicDisplaySettings.numberOfRecentTracks]}
+                        onValueChange={(value) =>
                           setPreferences(prev => ({
                             ...prev,
                             publicDisplaySettings: {
                               ...prev.publicDisplaySettings,
-                              numberOfRecentTracks: parseInt(e.target.value) || 5
+                              numberOfRecentTracks: value[0]
                             }
                           }))
                         }
+                        className="w-full"
                       />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>5</span>
+                        <span>50</span>
+                      </div>
                     </div>
                   )}
                 </div>

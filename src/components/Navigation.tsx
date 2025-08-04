@@ -14,7 +14,7 @@ export default function Navigation() {
   const [showNav, setShowNav] = useState(true)
   const [isHoveringTop, setIsHoveringTop] = useState(false)
   const pathname = usePathname()
-  
+
   // Check if we're on a display page
   const isDisplayPage = pathname?.startsWith('/display/')
 
@@ -60,8 +60,8 @@ export default function Navigation() {
 
         <nav className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 backdrop-blur-md border rounded-2xl shadow-xl shadow-black/10 transition-all duration-500 ease-out ${
           showNav || isHoveringTop ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0'
-        } ${isDisplayPage 
-          ? 'bg-black/95 border-gray-700/50' 
+        } ${isDisplayPage
+          ? 'bg-black/95 border-gray-700/50'
           : 'bg-background/95 border-border/50'
         }`}>
           <div className="px-4 flex h-14 items-center">
@@ -87,8 +87,8 @@ export default function Navigation() {
 
       <nav className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 backdrop-blur-md border rounded-2xl shadow-xl shadow-black/10 transition-all duration-500 ease-out ${
         showNav || isHoveringTop ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0'
-      } ${isDisplayPage 
-        ? 'bg-black/95 border-gray-700/50' 
+      } ${isDisplayPage
+        ? 'bg-black/95 border-gray-700/50'
         : 'bg-background/95 border-border/50'
       }`}>
       <div className="px-4 flex h-14 items-center">
@@ -98,8 +98,8 @@ export default function Navigation() {
               <Music className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
             <span className={`font-bold bg-gradient-to-r bg-clip-text text-transparent ${
-              isDisplayPage 
-                ? 'from-white to-gray-300' 
+              isDisplayPage
+                ? 'from-white to-gray-300'
                 : 'from-foreground to-foreground/80'
             }`}>SpotifyUtil</span>
           </Link>
@@ -110,18 +110,28 @@ export default function Navigation() {
             <>
               <Link href="/dashboard" className="hidden sm:block">
                 <Button variant="ghost" size="sm" className={`font-medium transition-colors ${
-                  isDisplayPage 
-                    ? 'text-white hover:bg-gray-800' 
+                  isDisplayPage
+                    ? 'text-white hover:bg-gray-800'
                     : 'hover:bg-accent'
                 }`}>
                   Dashboard
                 </Button>
               </Link>
 
+              <Link href="/leaderboard" className="hidden sm:block">
+                <Button variant="ghost" size="sm" className={`font-medium transition-colors ${
+                  isDisplayPage
+                    ? 'text-white hover:bg-gray-800'
+                    : 'hover:bg-accent'
+                }`}>
+                  Leaderboard
+                </Button>
+              </Link>
+
               <AppThemeSelector>
                 <Button variant="ghost" size="sm" className={`transition-colors ${
-                  isDisplayPage 
-                    ? 'text-white hover:bg-gray-800' 
+                  isDisplayPage
+                    ? 'text-white hover:bg-gray-800'
                     : 'hover:bg-accent'
                 }`}>
                   <Palette className={`h-4 w-4 sm:mr-2 ${
@@ -133,8 +143,8 @@ export default function Navigation() {
 
               <SettingsModal>
                 <Button variant="ghost" size="sm" className={`transition-colors ${
-                  isDisplayPage 
-                    ? 'text-white hover:bg-gray-800' 
+                  isDisplayPage
+                    ? 'text-white hover:bg-gray-800'
                     : 'hover:bg-accent'
                 }`}>
                   <Settings className="h-4 w-4 sm:mr-2" />
@@ -147,8 +157,8 @@ export default function Navigation() {
                 size="sm"
                 onClick={() => signOut()}
                 className={`font-medium transition-colors ${
-                  isDisplayPage 
-                    ? 'border-gray-700 text-white hover:bg-gray-800' 
+                  isDisplayPage
+                    ? 'border-gray-700 text-white hover:bg-gray-800'
                     : 'border-border hover:bg-accent'
                 }`}
               >

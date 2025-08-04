@@ -8,6 +8,7 @@ import Image from 'next/image'
 import { formatDuration, getMediumImage } from '@/lib/utils'
 import { useDisplayStyle, useDisplayStyleClasses } from '@/contexts/display-style-context'
 import { getDisplayStyle } from '@/lib/app-themes'
+// import { ViewCounter } from '@/components/ViewCounter'
 
 interface DisplayTrack {
   name: string
@@ -70,22 +71,19 @@ export default function PublicDisplay() {
       try {
         console.log('🎨 Display Page: Fetching style for identifier:', identifier)
 
-        // First try to get style from slug endpoint
-        let response = await fetch(`/api/public/display/${identifier}`)
+        // Use the same endpoint logic as track fetching to ensure consistency
+        let response: Response
+
+        // First try as a slug
+        console.log('🎨 Display Page: Trying slug endpoint for style')
+        response = await fetch(`/api/public/display/${identifier}`)
         console.log('🎨 Display Page: Slug API response status:', response.status)
 
-        // If slug fails, try Spotify ID endpoint
+        // If slug fails with 404, try as Spotify ID
         if (!response.ok && response.status === 404) {
-          console.log('🎨 Display Page: Slug failed, trying Spotify ID endpoint')
-          response = await fetch(`/api/public/spotify/${identifier}`)
-          console.log('🎨 Display Page: Spotify ID API response status:', response.status)
-        }
-
-        // If public endpoints fail, try regular display endpoint
-        if (!response.ok && response.status === 404) {
-          console.log('🎨 Display Page: Public endpoints failed, trying regular display endpoint')
+          console.log('🎨 Display Page: Slug failed, trying Spotify ID endpoint for style')
           response = await fetch(`/api/display/${identifier}`)
-          console.log('🎨 Display Page: Regular display API response status:', response.status)
+          console.log('🎨 Display Page: Spotify ID API response status:', response.status)
         }
 
         if (response.ok) {
@@ -142,7 +140,7 @@ export default function PublicDisplay() {
     }
 
     fetchUserStyle()
-  }, [identifier, setStyle])
+  }, [identifier, setStyle, applyStyle])
 
   useEffect(() => {
     const fetchCurrentTrack = async (isInitial = false) => {
@@ -150,21 +148,19 @@ export default function PublicDisplay() {
         let apiUrl: string
         let response: Response
 
-        // First, try as a slug
-        apiUrl = `/api/public/display/${identifier}`
-        console.log('Trying slug endpoint:', apiUrl)
-        response = await fetch(apiUrl, {
+        // Use the exact same endpoint logic as style fetching
+        console.log('Trying slug endpoint for track data:', `/api/public/display/${identifier}`)
+        response = await fetch(`/api/public/display/${identifier}`, {
           cache: 'no-store', // Prevent caching issues
           headers: {
             'Cache-Control': 'no-cache',
           }
         })
 
-        // If slug fails with 404, try as Spotify ID
+        // If slug fails with 404, try as Spotify ID (same as style fetching)
         if (!response.ok && response.status === 404) {
-          apiUrl = `/api/display/${identifier}`
-          console.log('Slug failed, trying Spotify ID endpoint:', apiUrl)
-          response = await fetch(apiUrl, {
+          console.log('Slug failed, trying Spotify ID endpoint for track data:', `/api/display/${identifier}`)
+          response = await fetch(`/api/display/${identifier}`, {
             cache: 'no-store', // Prevent caching issues
             headers: {
               'Cache-Control': 'no-cache',
@@ -174,6 +170,7 @@ export default function PublicDisplay() {
 
         if (response.ok) {
           const data = await response.json()
+          console.log('Track data received:', data)
           setCurrentTrack(data)
           setLastUpdate(new Date())
 
@@ -353,6 +350,11 @@ export default function PublicDisplay() {
                     </p>
                   </div>
 
+                  {/* View Counter - Temporarily commented out */}
+                  {/* <div className="flex justify-center">
+                    <ViewCounter identifier={identifier} />
+                  </div> */}
+
                   {/* Progress and Duration - Under everything else */}
                   {track.name !== "Loading..." && track.name !== "No recent tracks available" && (
                     <div className="space-y-3 w-full">
@@ -376,12 +378,14 @@ export default function PublicDisplay() {
                   <div className="flex flex-col items-center space-y-2 pt-2">
                     <div className="flex items-center space-x-2">
                       <div className={`w-2 h-2 rounded-full ${track.is_playing ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-                      <span className={`text-sm ${styleClasses.secondaryText}`}>
+                      <span className={`text-sm font-medium ${styleClasses.secondaryText}`}>
                         {track.name === "Loading..." || track.name === "No recent tracks available"
                           ? 'Loading...'
                           : track.is_playing
-                            ? 'Now playing'
-                            : 'Last played'
+                            ? 'Now Playing'
+                            : track.progress_ms === track.duration_ms
+                              ? 'Recently Played'
+                              : 'Paused'
                         }
                       </span>
                     </div>

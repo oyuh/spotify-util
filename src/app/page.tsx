@@ -424,7 +424,7 @@ function Home() {
                 <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                 <div className="flex-1 text-center text-gray-400 text-sm">
-                  musicutil.com/display/yourname
+                  musicutil.online/display/yourname
                 </div>
               </div>
               <div className="p-8 sm:p-12">

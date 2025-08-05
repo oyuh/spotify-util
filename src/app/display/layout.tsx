@@ -9,7 +9,7 @@ export default function DisplayLayout({
 }) {
   return (
     <DisplayStyleProvider>
-      <div className="min-h-screen">
+      <div className="min-h-screen" data-display-container="true">
         {children}
       </div>
     </DisplayStyleProvider>

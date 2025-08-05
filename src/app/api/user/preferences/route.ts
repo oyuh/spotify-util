@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { getUserPreferences, updateUserPreferences, createDefaultUserPreferences } from "@/lib/db"
-import { generateCustomSlug, isValidSlug } from "@/lib/utils"
+import { generateCustomSlug, isValidSlug, isValidImageUrl, sanitizeImageUrl } from "@/lib/utils"
 
 export async function GET(request: NextRequest) {
   try {
@@ -50,6 +50,23 @@ export async function POST(request: NextRequest) {
           { error: "Invalid custom slug format" },
           { status: 400 }
         )
+      }
+    }
+
+    // Validate background image URL if provided
+    if (body.displaySettings?.backgroundImage) {
+      const imageUrl = body.displaySettings.backgroundImage.trim()
+
+      // Allow empty string to remove background
+      if (imageUrl !== '') {
+        if (!isValidImageUrl(imageUrl)) {
+          return NextResponse.json(
+            { error: "Invalid image URL. Please use a valid HTTPS image URL from a supported domain." },
+            { status: 400 }
+          )
+        }
+        // Sanitize the URL
+        body.displaySettings.backgroundImage = sanitizeImageUrl(imageUrl)
       }
     }
 

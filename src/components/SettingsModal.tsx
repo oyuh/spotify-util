@@ -30,9 +30,10 @@ import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { Copy, Settings, Eye, EyeOff, Shuffle, Link as LinkIcon, Palette, Monitor } from 'lucide-react'
+import { Copy, Settings, Eye, EyeOff, Shuffle, Link as LinkIcon, Palette, Monitor, CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { displayStyles } from '@/lib/app-themes'
+import { testImageUrl } from '@/lib/utils'
 
 interface UserPreferences {
   publicDisplaySettings: {
@@ -53,6 +54,7 @@ interface UserPreferences {
   displaySettings: {
     style: string
     customCSS?: string
+    backgroundImage?: string
     streamerMode: boolean
     position?: {
       x: number
@@ -87,11 +89,13 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
     displaySettings: {
       style: 'minimal',
       customCSS: '',
+      backgroundImage: '',
       streamerMode: false
     }
   })
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [imageTestResult, setImageTestResult] = useState<'idle' | 'testing' | 'valid' | 'invalid'>('idle')
 
   // Load user preferences
   useEffect(() => {
@@ -172,6 +176,28 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
     } catch (error) {
       console.error('Failed to generate slug:', error)
       toast.error('Failed to generate custom link')
+    }
+  }
+
+  const testBackgroundImage = async (url: string) => {
+    if (!url.trim()) {
+      setImageTestResult('idle')
+      return
+    }
+
+    setImageTestResult('testing')
+    try {
+      const isValid = await testImageUrl(url)
+      setImageTestResult(isValid ? 'valid' : 'invalid')
+
+      if (isValid) {
+        toast.success('Image URL is valid!')
+      } else {
+        toast.error('Image URL failed to load. Please check the URL and try again.')
+      }
+    } catch (error) {
+      setImageTestResult('invalid')
+      toast.error('Failed to test image URL')
     }
   }
 
@@ -711,8 +737,6 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
 
                 <Separator />
 
-                <Separator />
-
                 {/* Streaming Mode Toggle */}
                 <div className="flex items-center justify-between">
                   <div>
@@ -734,6 +758,38 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
                       }))
                     }
                   />
+                </div>
+
+                <Separator />
+
+                {/* Custom Background Image - DISABLED FOR PRODUCTION */}
+                <div className="space-y-2 opacity-50">
+                  <Label htmlFor="background-image">Background Image</Label>
+                  <p className="text-xs text-amber-600 font-medium">
+                    🚧 Coming Soon - Background images are currently being improved and will be available in a future update.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      id="background-image"
+                      type="url"
+                      placeholder="Feature coming soon..."
+                      disabled={true}
+                      value=""
+                      className="cursor-not-allowed"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={true}
+                      className="cursor-not-allowed"
+                    >
+                      Coming Soon
+                    </Button>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>Background images will support Imgur, Unsplash, Discord CDN, GitHub, and other trusted image hosts</p>
+                    <p>Note: This feature is being optimized for better performance and reliability</p>
+                  </div>
                 </div>
 
                 {/* Custom CSS */}

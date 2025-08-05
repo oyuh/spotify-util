@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { MongoClient } from 'mongodb'
-import { getUserPreferences } from '@/lib/db'
+import { getUserPreferences, getUserBySpotifyId } from '@/lib/db'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
@@ -97,7 +97,21 @@ export async function GET(
             console.log('Stream API - Found recent track:', lastTrack.name)
 
             // Get user preferences to determine what data to return
-            const userPreferences = await getUserPreferences(account.userId)
+            console.log('Looking for user preferences by spotifyId:', identifier)
+            let userPreferences = await getUserPreferences(identifier)
+
+            // If not found by spotifyId, try looking up by the spotifyId field in preferences
+            if (!userPreferences) {
+              console.log('Not found by userId, trying getUserBySpotifyId...')
+              userPreferences = await getUserBySpotifyId(identifier)
+            }
+
+            // If still not found, try the account.userId as fallback
+            if (!userPreferences) {
+              console.log('Still not found, trying account.userId as fallback:', account.userId)
+              userPreferences = await getUserPreferences(account.userId)
+            }
+
             console.log('Stream API - User preferences found for recent track:', userPreferences ? 'Yes' : 'No')
 
             // Build response based on user preferences
@@ -152,7 +166,21 @@ export async function GET(
       }
 
       // Get user preferences to determine what data to return
-      const userPreferences = await getUserPreferences(account.userId)
+      console.log('Looking for user preferences by spotifyId:', identifier)
+      let userPreferences = await getUserPreferences(identifier)
+
+      // If not found by spotifyId, try looking up by the spotifyId field in preferences
+      if (!userPreferences) {
+        console.log('Not found by userId, trying getUserBySpotifyId...')
+        userPreferences = await getUserBySpotifyId(identifier)
+      }
+
+      // If still not found, try the account.userId as fallback
+      if (!userPreferences) {
+        console.log('Still not found, trying account.userId as fallback:', account.userId)
+        userPreferences = await getUserPreferences(account.userId)
+      }
+
       console.log('Stream API - User preferences found:', userPreferences ? 'Yes' : 'No')
 
       // Build response based on user preferences
@@ -187,6 +215,17 @@ export async function GET(
 
         if (settings.showCredits) {
           response.external_urls = currentTrack.item.external_urls
+        }
+
+        // Include display settings for styling
+        if (userPreferences.displaySettings) {
+          response.settings = {
+            theme: userPreferences.displaySettings.style,
+            customCSS: userPreferences.displaySettings.customCSS,
+            backgroundImage: userPreferences.displaySettings.backgroundImage,
+            streamerMode: userPreferences.displaySettings.streamerMode,
+            position: userPreferences.displaySettings.position
+          }
         }
       } else {
         // Default behavior if no preferences found
@@ -239,7 +278,21 @@ export async function GET(
                 console.log('Stream API - Found recent track after refresh:', lastTrack.name)
 
                 // Get user preferences to determine what data to return
-                const userPreferences = await getUserPreferences(account.userId)
+                console.log('Looking for user preferences by spotifyId:', identifier)
+                let userPreferences = await getUserPreferences(identifier)
+
+                // If not found by spotifyId, try looking up by the spotifyId field in preferences
+                if (!userPreferences) {
+                  console.log('Not found by userId, trying getUserBySpotifyId...')
+                  userPreferences = await getUserBySpotifyId(identifier)
+                }
+
+                // If still not found, try the account.userId as fallback
+                if (!userPreferences) {
+                  console.log('Still not found, trying account.userId as fallback:', account.userId)
+                  userPreferences = await getUserPreferences(account.userId)
+                }
+
                 console.log('Stream API - User preferences found for recent track after refresh:', userPreferences ? 'Yes' : 'No')
 
                 // Build response based on user preferences
@@ -294,7 +347,21 @@ export async function GET(
           }
 
           // Get user preferences to determine what data to return after refresh
-          const userPreferences = await getUserPreferences(account.userId)
+          console.log('Looking for user preferences by spotifyId:', identifier)
+          let userPreferences = await getUserPreferences(identifier)
+
+          // If not found by spotifyId, try looking up by the spotifyId field in preferences
+          if (!userPreferences) {
+            console.log('Not found by userId, trying getUserBySpotifyId...')
+            userPreferences = await getUserBySpotifyId(identifier)
+          }
+
+          // If still not found, try the account.userId as fallback
+          if (!userPreferences) {
+            console.log('Still not found, trying account.userId as fallback:', account.userId)
+            userPreferences = await getUserPreferences(account.userId)
+          }
+
           console.log('Stream API - User preferences found after refresh:', userPreferences ? 'Yes' : 'No')
 
           // Build response based on user preferences

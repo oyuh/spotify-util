@@ -48,6 +48,7 @@ interface TrackData {
   settings?: {
     theme: string
     customCSS?: string
+    backgroundImage?: string
     streamerMode: boolean
     position?: { x: number; y: number }
   }
@@ -153,7 +154,7 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
     return () => clearInterval(fakeInterval)
   }, [trackData?.is_playing, trackData?.duration_ms, lastRealProgress, lastUpdateTime])
 
-  // Custom CSS injection
+  // Custom CSS and background image injection
   useEffect(() => {
     if (trackData?.settings?.customCSS) {
       const style = document.createElement("style")
@@ -165,6 +166,20 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
       }
     }
   }, [trackData?.settings?.customCSS])
+
+  // Apply background image if provided
+  useEffect(() => {
+    if (trackData?.settings?.backgroundImage) {
+      const root = document.documentElement
+      root.style.setProperty('--display-bg-image', `url(${trackData.settings.backgroundImage})`)
+      root.style.setProperty('--display-bg-blend', 'overlay')
+
+      return () => {
+        root.style.removeProperty('--display-bg-image')
+        root.style.removeProperty('--display-bg-blend')
+      }
+    }
+  }, [trackData?.settings?.backgroundImage])
 
   if (loading) {
     return (

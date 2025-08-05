@@ -60,57 +60,27 @@ export function DisplayStyleProvider({
         displayContainer.setAttribute('data-has-bg-image', 'true')
         console.log('🖼️ Setting background image:', bgImage)
 
-        // Test the image before applying it - try fixing CORS and URL issues
+        // Test the image before applying it
         const testImage = new Image()
-        testImage.crossOrigin = 'anonymous' // Handle CORS
         testImage.onload = () => {
-          console.log('🖼️ Background image loaded successfully:', bgImage)
-          // Try different URL formats to fix the issue
-          const imageUrl = bgImage.includes('i.ibb.co') ?
-            bgImage.replace('/C5j9bG1m/', '/C5j9bG1/') : // Fix potential ibb.co URL issue
-            bgImage
-
-          displayContainer.style.backgroundImage = `url("${imageUrl}")`
+          console.log('🖼️ Background image loaded successfully')
+          displayContainer.style.backgroundImage = `url("${bgImage}")`
           displayContainer.style.backgroundSize = 'cover'
           displayContainer.style.backgroundPosition = 'center'
           displayContainer.style.backgroundRepeat = 'no-repeat'
           displayContainer.style.backgroundAttachment = 'fixed'
-          console.log('🖼️ Applied background image to display container:', imageUrl)
+          console.log('🖼️ Applied background image to display container only')
         }
-        testImage.onerror = (error) => {
-          console.error('🖼️ Background image failed to load:', bgImage, error)
-
-          // Try alternative URL format for ibb.co
-          if (bgImage.includes('i.ibb.co') && bgImage.includes('/C5j9bG1m/')) {
-            const altUrl = bgImage.replace('/C5j9bG1m/', '/C5j9bG1/')
-            console.log('🔄 Trying alternative URL format:', altUrl)
-
-            const retryImage = new Image()
-            retryImage.crossOrigin = 'anonymous'
-            retryImage.onload = () => {
-              console.log('🖼️ Alternative URL worked:', altUrl)
-              displayContainer.style.backgroundImage = `url("${altUrl}")`
-              displayContainer.style.backgroundSize = 'cover'
-              displayContainer.style.backgroundPosition = 'center'
-              displayContainer.style.backgroundRepeat = 'no-repeat'
-              displayContainer.style.backgroundAttachment = 'fixed'
-            }
-            retryImage.onerror = () => {
-              console.error('🖼️ Alternative URL also failed, removing background')
-              displayContainer.removeAttribute('data-has-bg-image')
-              displayContainer.style.backgroundImage = ''
-            }
-            retryImage.src = altUrl
-          } else {
-            // Remove background image but keep the theme applied
-            displayContainer.removeAttribute('data-has-bg-image')
-            displayContainer.style.backgroundImage = ''
-            displayContainer.style.backgroundSize = ''
-            displayContainer.style.backgroundPosition = ''
-            displayContainer.style.backgroundRepeat = ''
-            displayContainer.style.backgroundAttachment = ''
-            console.log('🖼️ Continuing with theme but without background image')
-          }
+        testImage.onerror = () => {
+          console.error('🖼️ Background image failed to load:', bgImage)
+          // Remove background image but keep the theme applied
+          displayContainer.removeAttribute('data-has-bg-image')
+          displayContainer.style.backgroundImage = ''
+          displayContainer.style.backgroundSize = ''
+          displayContainer.style.backgroundPosition = ''
+          displayContainer.style.backgroundRepeat = ''
+          displayContainer.style.backgroundAttachment = ''
+          console.log('🖼️ Continuing with theme but without background image')
         }
 
         // Set timeout for image loading
@@ -190,27 +160,4 @@ export function useDisplayStyle() {
     throw new Error('useDisplayStyle must be used within a DisplayStyleProvider')
   }
   return context
-}
-
-// Helper hook to get style classes
-export function useDisplayStyleClasses() {
-  const { style } = useDisplayStyle()
-  console.log('🎨 useDisplayStyleClasses: Current style:', style)
-  const classes = {
-    background: style.styles.background,
-    cardBackground: style.styles.cardBackground,
-    cardBorder: style.styles.cardBorder,
-    text: style.styles.text,
-    secondaryText: style.styles.secondaryText,
-    accent: style.styles.accent,
-    progressBar: style.styles.progressBar,
-    progressBackground: style.styles.progressBackground,
-    shadow: style.styles.shadow,
-    hover: style.styles.hover,
-    fontFamily: style.styles.fontFamily || 'font-sans',
-    fontSize: style.styles.fontSize || 'text-base',
-    borderRadius: style.styles.borderRadius || 'rounded-md'
-  }
-  console.log('🎨 useDisplayStyleClasses: Returning classes:', classes)
-  return classes
 }

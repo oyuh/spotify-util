@@ -46,9 +46,10 @@ interface DisplayTrack {
 }
 
 export default function PublicDisplay() {
+  console.log('DISPLAY PAGE: Component rendering!')
   const params = useParams()
   const identifier = params.identifier as string
-  const { setStyle, applyStyle } = useDisplayStyle()
+  const { setStyle, applyStyle, setStyleWithPreferences } = useDisplayStyle()
   const styleClasses = useDisplayStyleClasses()
   const [currentTrack, setCurrentTrack] = useState<DisplayTrack | null>(null)
   const [loading, setLoading] = useState(true)
@@ -58,6 +59,7 @@ export default function PublicDisplay() {
   const [lastUpdateTime, setLastUpdateTime] = useState(Date.now())
   const [userStyle, setUserStyle] = useState<string>('minimal')
   const [displayName, setDisplayName] = useState<string>('SpotifyUtil')
+  const [hasBackgroundImage, setHasBackgroundImage] = useState<boolean>(false)
 
   // Update document title when display name changes
   useEffect(() => {
@@ -67,6 +69,7 @@ export default function PublicDisplay() {
   }, [displayName])
 
   useEffect(() => {
+    console.log('DISPLAY PAGE: useEffect for style starting, identifier:', identifier)
     const fetchUserStyle = async () => {
       try {
         console.log('🎨 Display Page: Fetching style for identifier:', identifier)
@@ -103,44 +106,46 @@ export default function PublicDisplay() {
           if (userData.preferences?.displaySettings?.style) {
             const styleId = userData.preferences.displaySettings.style
             console.log('🎨 Display Page: Setting style to:', styleId)
-            setUserStyle(styleId)
 
             // Create a custom style object if user has background image
             const customBackground = userData.preferences.displaySettings.backgroundImage
+            console.log('🎨 Display Page: Background image check:', customBackground)
             if (customBackground) {
               console.log('🎨 Display Page: Custom background image found:', customBackground)
-              // Apply the style with custom background
-              const baseStyle = getDisplayStyle(styleId)
-              const customStyle = {
-                ...baseStyle,
-                backgroundImage: customBackground
-              }
-              applyStyle(customStyle)
+              setHasBackgroundImage(true)
+              // Use setStyleWithPreferences to properly handle the background image
+              setStyleWithPreferences(styleId, userData.preferences)
             } else {
+              console.log('🎨 Display Page: No custom background, using standard style')
+              setHasBackgroundImage(false)
               setStyle(styleId)
             }
             return
           } else {
             console.log('🎨 Display Page: No style in preferences, using minimal')
+            setHasBackgroundImage(false)
           }
         } else {
           console.log('🎨 Display Page: API call failed, using minimal')
+          setHasBackgroundImage(false)
         }
 
         // Use default style if no preferences found
         console.log('🎨 Display Page: Falling back to minimal style')
         setDisplayName(identifier) // Set display name to identifier as fallback
+        setHasBackgroundImage(false)
         setStyle('minimal')
       } catch (error) {
         console.error('🎨 Display Page: Error fetching user style:', error)
         // Use default style on error
         setDisplayName(identifier) // Set display name to identifier as fallback
+        setHasBackgroundImage(false)
         setStyle('minimal')
       }
     }
 
     fetchUserStyle()
-  }, [identifier, setStyle, applyStyle])
+  }, [identifier]) // Simplified dependency array
 
   useEffect(() => {
     const fetchCurrentTrack = async (isInitial = false) => {
@@ -299,7 +304,7 @@ export default function PublicDisplay() {
   const progressPercent = duration > 0 ? (currentProgress / duration) * 100 : 0
 
   return (
-    <div className={`min-h-screen ${styleClasses.background} flex items-center justify-center p-4`}>
+    <div className={`min-h-screen ${styleClasses.background} ${hasBackgroundImage ? 'display-with-bg' : ''} flex items-center justify-center p-4`}>
       <div className={`w-full ${track.recent_tracks && track.recent_tracks.length > 0 ? 'max-w-6xl' : 'max-w-2xl'} ${styleClasses.shadow}`}>
         <div className={`${track.recent_tracks && track.recent_tracks.length > 0 ? 'grid grid-cols-1 lg:grid-cols-3 gap-6' : ''}`}>
           {/* Main Track Display */}

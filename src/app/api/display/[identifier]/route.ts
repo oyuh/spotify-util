@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { MongoClient } from 'mongodb'
-import { getUserPreferences } from '@/lib/db'
+import { getUserPreferences, getUserBySpotifyId } from '@/lib/db'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 
@@ -87,7 +87,16 @@ export async function GET(
     // If we found an account, check privacy settings
     if (account) {
       console.log('Checking privacy settings for userId:', account.userId)
-      const userPrefs = await getUserPreferences(account.userId.toString())
+
+      // Look up preferences using the proper method
+      let userPrefs = await getUserPreferences(identifier)
+      if (!userPrefs) {
+        userPrefs = await getUserBySpotifyId(identifier)
+      }
+      if (!userPrefs) {
+        userPrefs = await getUserPreferences(account.userId.toString())
+      }
+
       console.log('User preferences found:', userPrefs ? 'Yes' : 'No')
       console.log('Privacy settings:', JSON.stringify(userPrefs?.privacySettings, null, 2))
 
@@ -144,23 +153,31 @@ export async function GET(
         // Even when no track is playing, check if user wants recent tracks shown
         let sessionUserId = account.userId
 
-        // Check if we can find the actual session userId by looking for a user_preferences record
-        const db2 = client.db("test")
-        const userPreferencesCollection = db2.collection("user_preferences")
+        // The key fix: preferences are stored by spotifyId, not by the account userId
+        // So we should look up preferences by spotifyId (which is the identifier)
+        console.log('Looking for user preferences by spotifyId:', identifier)
+        let userPreferences = await getUserPreferences(identifier)
 
-        // Try to find preferences by spotifyId first
-        const existingPrefs = await userPreferencesCollection.findOne({
-          spotifyId: identifier
-        })
-
-        if (existingPrefs) {
-          sessionUserId = existingPrefs.userId
-          console.log('Found existing preferences, using userId:', sessionUserId)
+        // If not found by spotifyId, try looking up by the spotifyId field in preferences
+        if (!userPreferences) {
+          console.log('Not found by userId, trying getUserBySpotifyId...')
+          userPreferences = await getUserBySpotifyId(identifier)
         }
 
-        console.log('Looking for user preferences with userId:', sessionUserId)
-        const userPreferences = await getUserPreferences(sessionUserId)
+        // If still not found, try the account.userId as fallback
+        if (!userPreferences) {
+          console.log('Still not found, trying account.userId as fallback:', account.userId)
+          userPreferences = await getUserPreferences(account.userId)
+        }
+
         console.log('User preferences found:', userPreferences ? 'Yes' : 'No')
+        if (userPreferences) {
+          console.log('FULL USER PREFERENCES DATA (FORCED REBUILD):', JSON.stringify(userPreferences, null, 2))
+          console.log('Display settings:', JSON.stringify(userPreferences.displaySettings, null, 2))
+          console.log('Public display settings:', JSON.stringify(userPreferences.publicDisplaySettings, null, 2))
+          console.log('Show recent tracks setting:', userPreferences.publicDisplaySettings?.showRecentTracks)
+          console.log('Number of recent tracks:', userPreferences.publicDisplaySettings?.numberOfRecentTracks)
+        }
 
         // ALWAYS fetch recent tracks to get the last played song
         let recentTracksData = null
@@ -268,30 +285,28 @@ export async function GET(
       console.log('Returning track data:', currentTrack.item.name)
 
       // Get user preferences to determine what data to return
-      // We need to get the userId from session, not from the account record
-      // because the account record might have a different userId format
-      let sessionUserId = account.userId
+      // The key fix: preferences are stored by spotifyId, not by the account userId
+      // So we should look up preferences by spotifyId (which is the identifier)
+      console.log('Looking for user preferences by spotifyId:', identifier)
+      let userPreferences = await getUserPreferences(identifier)
 
-      // Check if we can find the actual session userId by looking for a user_preferences record
-      // that was created/updated with the same spotifyId as this account
-      const db2 = client.db("test")
-      const userPreferencesCollection = db2.collection("user_preferences")
-
-      // Try to find preferences by spotifyId first, since that's what we know for sure
-      const existingPrefs = await userPreferencesCollection.findOne({
-        spotifyId: identifier
-      })
-
-      if (existingPrefs) {
-        sessionUserId = existingPrefs.userId
-        console.log('Found existing preferences, using userId:', sessionUserId)
+      // If not found by spotifyId, try looking up by the spotifyId field in preferences
+      if (!userPreferences) {
+        console.log('Not found by userId, trying getUserBySpotifyId...')
+        userPreferences = await getUserBySpotifyId(identifier)
       }
 
-      console.log('Looking for user preferences with userId:', sessionUserId)
-      const userPreferences = await getUserPreferences(sessionUserId)
+      // If still not found, try the account.userId as fallback
+      if (!userPreferences) {
+        console.log('Still not found, trying account.userId as fallback:', account.userId)
+        userPreferences = await getUserPreferences(account.userId)
+      }
+
       console.log('User preferences found:', userPreferences ? 'Yes' : 'No')
       if (userPreferences) {
         console.log('User preferences data:', JSON.stringify(userPreferences.publicDisplaySettings, null, 2))
+        console.log('Show recent tracks setting:', userPreferences.publicDisplaySettings?.showRecentTracks)
+        console.log('Number of recent tracks:', userPreferences.publicDisplaySettings?.numberOfRecentTracks)
       }
 
       // Build response based on user preferences

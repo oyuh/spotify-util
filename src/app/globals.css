@@ -162,4 +162,34 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+
+  /* Custom background image support for display pages */
+  body {
+    background-image: var(--display-bg-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-blend-mode: var(--display-bg-blend, normal);
+  }
+
+  /* Graceful handling when background image fails to load */
+  body.bg-error {
+    /* Keep the theme styling intact, just remove the background image */
+    background-image: none !important;
+  }  /* Ensure background image works well with overlay */
+  .display-with-bg::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: -1;
+    pointer-events: none;
+  }
 }
+/* Debug: Force background image visibility */
+html { background-image: var(--display-bg-image) !important; background-size: cover !important; background-position: center !important; background-repeat: no-repeat !important; background-attachment: fixed !important; min-height: 100vh !important; }
+body { background: transparent !important; min-height: 100vh !important; }

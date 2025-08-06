@@ -1,5 +1,6 @@
 # Development and debug routes - exclude from deployment
 src/app/api/dev/
+src/app/admin/
 
 # Test pages that shouldn't be deployed
 src/app/test-styles/

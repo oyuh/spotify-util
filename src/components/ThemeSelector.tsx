@@ -8,81 +8,79 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Palette, Monitor, Video } from 'lucide-react'
 import { useTheme } from '@/contexts/theme-context'
-import { displayThemes, streamThemes, ThemeConfig } from '@/lib/themes'
+import { displayStyles, DisplayStyle } from '@/lib/app-themes'
 
 interface ThemeSelectorProps {
   children: React.ReactNode
 }
 
 export default function ThemeSelector({ children }: ThemeSelectorProps) {
-  const { theme, setTheme, themeType } = useTheme()
+  const { theme, setTheme } = useTheme()
   const [isOpen, setIsOpen] = useState(false)
   const [previewTheme, setPreviewTheme] = useState<string | null>(null)
-  const [previewType, setPreviewType] = useState<'display' | 'stream'>(themeType)
 
-  const handleThemeSelect = (themeId: string, type: 'display' | 'stream') => {
-    setTheme(themeId, type)
+  const handleThemeSelect = (themeId: string) => {
+    setTheme(themeId, 'display')
     setIsOpen(false)
     setPreviewTheme(null)
   }
 
-  const handlePreview = (themeId: string, type: 'display' | 'stream') => {
+  const handlePreview = (themeId: string) => {
     setPreviewTheme(themeId)
-    setPreviewType(type)
   }
 
-  const renderThemeGrid = (themes: ThemeConfig[], type: 'display' | 'stream') => (
+  const renderThemeGrid = (styles: DisplayStyle[]) => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {themes.map((themeConfig) => {
-        const isActive = theme.id === themeConfig.id && themeType === type
-        const isPreviewing = previewTheme === themeConfig.id && previewType === type
+      {styles.map((styleConfig) => {
+        const isActive = theme.id === styleConfig.id
+        const isPreviewing = previewTheme === styleConfig.id
 
         return (
           <Card
-            key={themeConfig.id}
+            key={styleConfig.id}
             className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
               isActive ? 'ring-2 ring-primary' : ''
             } ${isPreviewing ? 'ring-2 ring-accent' : ''}`}
-            onClick={() => handleThemeSelect(themeConfig.id, type)}
-            onMouseEnter={() => handlePreview(themeConfig.id, type)}
+            onClick={() => handleThemeSelect(styleConfig.id)}
+            onMouseEnter={() => handlePreview(styleConfig.id)}
             onMouseLeave={() => setPreviewTheme(null)}
           >
             <CardContent className="p-4">
               {/* Theme Preview */}
               <div
                 className="w-full h-24 rounded-lg mb-3 border"
-                style={{ background: themeConfig.preview }}
+                style={{ background: styleConfig.preview }}
               ></div>
 
               {/* Theme Info */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">{themeConfig.name}</h3>
+                  <h3 className="font-semibold">{styleConfig.name}</h3>
                   {isActive && <Badge variant="default">Active</Badge>}
                   {isPreviewing && !isActive && <Badge variant="secondary">Preview</Badge>}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {themeConfig.description}
+                  {styleConfig.description}
                 </p>
 
                 {/* Theme Color Palette */}
                 <div className="flex space-x-1 mt-2">
                   <div
                     className="w-4 h-4 rounded-full border"
-                    style={{ backgroundColor: themeConfig.styles.accent.includes('text-') ?
-                      getColorFromTailwind(themeConfig.styles.accent) : '#8B5CF6'
+                    style={{ backgroundColor: styleConfig.styles.accent.includes('text-') ?
+                      getColorFromTailwind(styleConfig.styles.accent) : '#8B5CF6'
                     }}
                   ></div>
                   <div
                     className="w-4 h-4 rounded-full border"
-                    style={{ backgroundColor: themeConfig.styles.progressBar.includes('bg-') ?
-                      getColorFromTailwind(themeConfig.styles.progressBar) : '#10B981'
+                    style={{ backgroundColor: styleConfig.styles.progressBar.includes('bg-') ?
+                      getColorFromTailwind(styleConfig.styles.progressBar) : '#10B981'
                     }}
                   ></div>
                   <div
                     className="w-4 h-4 rounded-full border"
-                    style={{ backgroundColor: themeConfig.styles.text.includes('text-') ?
-                      getColorFromTailwind(themeConfig.styles.text) : '#FFFFFF'
+                    style={{ backgroundColor: styleConfig.styles.text.includes('text-') ?
+                      getColorFromTailwind(styleConfig.styles.text) : '#FFFFFF'
                     }}
                   ></div>
                 </div>
@@ -107,7 +105,7 @@ export default function ThemeSelector({ children }: ThemeSelectorProps) {
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue={themeType} onValueChange={(value) => setPreviewType(value as 'display' | 'stream')}>
+        <Tabs defaultValue="display">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="display" className="flex items-center space-x-2">
               <Monitor className="h-4 w-4" />
@@ -127,26 +125,28 @@ export default function ThemeSelector({ children }: ThemeSelectorProps) {
                   Themes optimized for public display pages with rich visual elements
                 </p>
               </div>
-              {renderThemeGrid(displayThemes, 'display')}
+              {renderThemeGrid(displayStyles)}
             </div>
           </TabsContent>
 
           <TabsContent value="stream" className="mt-6">
             <div className="space-y-4">
               <div>
-                <h3 className="text-lg font-semibold mb-2">Stream Themes</h3>
+                <h3 className="text-lg font-semibold mb-2">Stream Overlays</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Minimal themes perfect for streaming overlays and OBS integration
+                  Stream overlays use custom CSS that you upload. No predefined themes available.
                 </p>
               </div>
-              {renderThemeGrid(streamThemes, 'stream')}
+              <div className="text-center py-8 text-muted-foreground">
+                Upload your own CSS files for stream customization
+              </div>
             </div>
           </TabsContent>
         </Tabs>
 
         <div className="flex justify-between items-center pt-4 border-t">
           <div className="text-sm text-muted-foreground">
-            Current: <span className="font-medium">{theme.name}</span> ({themeType})
+            Current: <span className="font-medium">{theme.name}</span>
           </div>
           <Button onClick={() => setIsOpen(false)} variant="outline">
             Close

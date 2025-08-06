@@ -1,10 +1,10 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { ThemeConfig, getTheme } from '@/lib/themes'
+import { DisplayStyle, getDisplayStyle } from '@/lib/app-themes'
 
 interface ThemeContextType {
-  theme: ThemeConfig
+  theme: DisplayStyle
   setTheme: (themeId: string, type: 'display' | 'stream') => void
   themeType: 'display' | 'stream'
   setThemeType: (type: 'display' | 'stream') => void
@@ -20,14 +20,14 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({
   children,
-  initialTheme = 'default',
+  initialTheme = 'minimal',
   initialType = 'display'
 }: ThemeProviderProps) {
   const [themeType, setThemeType] = useState<'display' | 'stream'>(initialType)
-  const [theme, setThemeState] = useState<ThemeConfig>(getTheme(initialTheme, themeType))
+  const [theme, setThemeState] = useState<DisplayStyle>(getDisplayStyle(initialTheme))
 
   const setTheme = (themeId: string, type: 'display' | 'stream') => {
-    const newTheme = getTheme(themeId, type)
+    const newTheme = getDisplayStyle(themeId)
     setThemeState(newTheme)
     setThemeType(type)
 

@@ -376,7 +376,7 @@ export default function PublicDisplay() {
   const progressPercent = duration > 0 ? (currentProgress / duration) * 100 : 0
 
   return (
-    <div id="display-background" className={`min-h-screen ${styleClasses.background} ${hasBackgroundImage ? 'display-with-bg' : ''} flex items-center justify-center p-4`}>
+    <div id="display-background" className={`min-h-screen ${styleClasses.background} ${styleClasses.fontFamily} ${hasBackgroundImage ? 'display-with-bg' : ''} flex items-center justify-center p-4`}>
       <div className={`w-full ${track.recent_tracks && track.recent_tracks.length > 0 ? 'max-w-6xl' : 'max-w-2xl'} ${styleClasses.shadow}`}>
         <div className={`${track.recent_tracks && track.recent_tracks.length > 0 ? 'grid grid-cols-1 lg:grid-cols-3 gap-6' : ''}`}>
           {/* Main Track Display */}

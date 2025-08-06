@@ -273,8 +273,8 @@ export default function SupportPage() {
                 <p className="text-sm text-muted-foreground mb-3">
                   Join our Discord community
                 </p>
-                <Button variant="outline" size="sm" onClick={() => window.open('https://discord.gg/your-server', '_blank')}>
-                  Join Discord
+                <Button variant="outline" size="sm">
+                  COMING SOON
                   <ExternalLink className="w-3 h-3 ml-2" />
                 </Button>
               </div>

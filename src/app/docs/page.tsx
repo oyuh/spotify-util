@@ -1,13 +1,16 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { BookOpen, Code, Palette, Settings, Users, FileText, ArrowRight, Sparkles } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { ThemeTester } from '@/components/ThemeTester'
 
 export default function DocsHomePage() {
   const router = useRouter()
+  const [themeTesterOpen, setThemeTesterOpen] = useState(false)
 
   const docSections = [
     {
@@ -23,29 +26,12 @@ export default function DocsHomePage() {
       title: "Display Themes",
       description: "Explore built-in themes and styling options",
       icon: <Palette className="w-5 h-5" />,
-      badge: "Guide",
-      badgeVariant: "secondary" as const,
+      badge: "Interactive",
+      badgeVariant: "default" as const,
       href: "/docs/themes",
-      features: ["Theme Gallery", "Customization", "Dark/Light Modes"]
+      features: ["Theme Gallery", "Live Preview", "Customization"],
+      action: () => setThemeTesterOpen(true)
     },
-    {
-      title: "API Reference",
-      description: "Integrate with external apps and services",
-      icon: <Settings className="w-5 h-5" />,
-      badge: "Technical",
-      badgeVariant: "outline" as const,
-      href: "/docs/api",
-      features: ["Endpoints", "Authentication", "Examples"]
-    },
-    {
-      title: "Community",
-      description: "Join our community and share your creations",
-      icon: <Users className="w-5 h-5" />,
-      badge: "Social",
-      badgeVariant: "secondary" as const,
-      href: "/docs/community",
-      features: ["Discord", "Examples", "Support"]
-    }
   ]
 
   const quickActions = [
@@ -63,8 +49,8 @@ export default function DocsHomePage() {
     },
     {
       title: "Browse Themes",
-      description: "Explore our built-in styling options",
-      action: () => router.push('/dashboard'),
+      description: "Preview all themes in our interactive tester",
+      action: () => setThemeTesterOpen(true),
       icon: <Palette className="w-4 h-4" />
     }
   ]
@@ -155,7 +141,13 @@ export default function DocsHomePage() {
                   <Button
                     className="w-full"
                     variant="outline"
-                    onClick={() => router.push(section.href)}
+                    onClick={() => {
+                      if (section.action) {
+                        section.action()
+                      } else {
+                        router.push(section.href)
+                      }
+                    }}
                   >
                     Read Guide
                     <ArrowRight className="w-4 h-4 ml-2" />
@@ -194,7 +186,7 @@ export default function DocsHomePage() {
                   Join our Discord community
                 </p>
                 <Button variant="outline" size="sm">
-                    {/* variant="outline" size="sm" onClick={() => window.open('https://discord.gg/your-server', '_blank') */}
+                    {/* variant="outline" size="sm" onClick={() => window.open('https://discord.gg/spotifyutil', '_blank') */}
                   COMING SOON
                 </Button>
               </div>
@@ -213,6 +205,12 @@ export default function DocsHomePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Theme Tester Modal */}
+      <ThemeTester
+        open={themeTesterOpen}
+        onOpenChange={setThemeTesterOpen}
+      />
     </div>
   )
 }

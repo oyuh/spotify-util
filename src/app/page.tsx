@@ -350,6 +350,156 @@ function Home() {
           </div>
         </section>
 
+        {/* Stream Overlay Showcase */}
+        <section className="stream-showcase-section container mx-auto px-4 py-20">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-purple-500 text-white px-4 py-2">
+              <Radio className="w-4 h-4 mr-2" />
+              Perfect for Streamers
+            </Badge>
+            <h2 className="text-4xl sm:text-5xl font-bold mb-6">
+              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Stream Ready Overlays
+              </span>
+            </h2>
+            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+              Professional music overlays designed specifically for Twitch, YouTube, and streaming platforms
+            </p>
+          </div>
+
+          <div className="max-w-6xl mx-auto">
+            {/* Stream Demo */}
+            <div className="relative mb-16">
+              <div className="stream-demo-container bg-gradient-to-br from-gray-900 to-black rounded-2xl p-8 border border-gray-800">
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl font-bold text-white mb-2">Live Stream Preview</h3>
+                  <p className="text-gray-400">See how your music overlay looks on stream</p>
+                </div>
+
+                {/* Mock stream overlay */}
+                <div className="relative bg-gradient-to-br from-purple-900/20 to-blue-900/20 rounded-xl p-6 min-h-[300px] flex items-end">
+                  {/* Game/stream content placeholder */}
+                  <div className="absolute inset-4 bg-gray-800/30 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-600">
+                    <div className="text-center text-gray-500">
+                      <MonitorSpeaker className="w-16 h-16 mx-auto mb-2" />
+                      <p className="text-lg">Your Stream Content</p>
+                      <p className="text-sm">Game, Camera, Desktop, etc.</p>
+                    </div>
+                  </div>
+
+                  {/* Music overlay positioned bottom-left */}
+                  <div className="relative z-10 bg-black/80 backdrop-blur-sm rounded-lg p-4 max-w-xs border border-purple-500/30 shadow-xl">
+                    <div className="flex items-center space-x-3">
+                      {/* Album art */}
+                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-md flex-shrink-0 shadow-lg"></div>
+
+                      {/* Track info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white text-sm font-bold mb-1 flex items-center">
+                          <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                          Blinding Lights
+                        </div>
+                        <div className="text-gray-300 text-xs">The Weeknd</div>
+
+                        {/* Progress bar */}
+                        <div className="mt-2">
+                          <div className="w-full bg-gray-700 rounded-full h-1">
+                            <div className="bg-purple-400 h-1 rounded-full w-1/3 transition-all duration-300"></div>
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-400 mt-1">
+                            <span>1:23</span>
+                            <span>3:45</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Stream Features */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-sm hover:bg-gray-900/70 transition-all group">
+                <CardHeader>
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 shadow-lg w-fit">
+                    <Eye className="w-6 h-6 text-white" />
+                  </div>
+                  <CardTitle className="text-white text-lg group-hover:text-purple-400 transition-colors">
+                    Transparent Background
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-gray-300">
+                    Perfect for OBS overlays with transparent backgrounds that won't interfere with your content
+                  </CardDescription>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-sm hover:bg-gray-900/70 transition-all group">
+                <CardHeader>
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 shadow-lg w-fit">
+                    <Wand2 className="w-6 h-6 text-white" />
+                  </div>
+                  <CardTitle className="text-white text-lg group-hover:text-blue-400 transition-colors">
+                    Scrolling Text
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-gray-300">
+                    Long song titles automatically scroll like sports tickers - no more cut-off text
+                  </CardDescription>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-sm hover:bg-gray-900/70 transition-all group">
+                <CardHeader>
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 shadow-lg w-fit">
+                    <Zap className="w-6 h-6 text-white" />
+                  </div>
+                  <CardTitle className="text-white text-lg group-hover:text-green-400 transition-colors">
+                    Real-Time Updates
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-gray-300">
+                    Instantly updates when you change songs - your audience sees what you're listening to live
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* CTA for streamers */}
+            <div className="text-center mt-16">
+              <div className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 rounded-2xl p-8 border border-purple-500/20">
+                <h3 className="text-2xl font-bold text-white mb-4">Ready to Level Up Your Stream?</h3>
+                <p className="text-gray-400 mb-6 max-w-2xl mx-auto">
+                  Join thousands of streamers using JamLog to showcase their music taste with professional overlays
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button
+                    size="lg"
+                    onClick={() => signIn("spotify")}
+                    className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold px-8 py-3 rounded-xl"
+                  >
+                    <Radio className="w-5 h-5 mr-2" />
+                    Create Stream Overlay
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={() => window.open('/stream/lawsonhart', '_blank')}
+                    className="border-2 border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white transition-all px-8 py-3 rounded-xl"
+                  >
+                    <Eye className="w-5 h-5 mr-2" />
+                    View Stream Demo
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Theme Showcase */}
         <section className="themes-section container mx-auto px-4 py-20">
           <div className="text-center mb-16">

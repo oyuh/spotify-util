@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
-import { ExternalLink, Copy, Check, Monitor, Settings, Eye, Music, User, Trash2, AlertTriangle } from 'lucide-react'
+import { ExternalLink, Copy, Check, Monitor, Settings, Eye, Music, User, Trash2, AlertTriangle, Radio, Code, Tv } from 'lucide-react'
 import { CurrentTrack } from '@/components/CurrentTrack'
 import { RecentTracks } from '@/components/RecentTracks'
 import SettingsModal from '@/components/SettingsModal'
@@ -36,10 +36,31 @@ interface UserProfile {
   product: string
 }
 
+interface UserPreferences {
+  privacySettings: {
+    isPublic: boolean
+    customSlug?: string
+  }
+  publicDisplaySettings: {
+    showArtist: boolean
+    showAlbum: boolean
+    showDuration: boolean
+    showProgress: boolean
+    showCredits: boolean
+  }
+  displaySettings: {
+    style: string
+    customCSS?: string
+    backgroundImage?: string
+    position?: { x: number; y: number }
+  }
+}
+
 export default function Dashboard() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
@@ -52,6 +73,7 @@ export default function Dashboard() {
 
     if (status === 'authenticated' && session?.accessToken) {
       fetchUserProfile()
+      fetchUserPreferences()
     }
   }, [status, session, router])
 
@@ -73,6 +95,21 @@ export default function Dashboard() {
       console.error('Error fetching user profile:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchUserPreferences = async () => {
+    try {
+      const response = await fetch('/api/user/preferences')
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user preferences')
+      }
+
+      const data = await response.json()
+      setPreferences(data)
+    } catch (error) {
+      console.error('Error fetching user preferences:', error)
     }
   }
 
@@ -125,11 +162,23 @@ export default function Dashboard() {
   // Debug logging
   console.log('Dashboard debug - session:', session)
   console.log('Dashboard debug - profile:', profile)
+  console.log('Dashboard debug - preferences:', preferences)
   console.log('Dashboard debug - spotifyId:', session?.spotifyId)
   console.log('Dashboard debug - profile id:', profile?.id)
 
-  const publicDisplayUrl = `${baseUrl}/display/${session?.spotifyId || profile?.id || 'demo'}`
-  const streamingUrl = `${baseUrl}/stream/${session?.spotifyId || profile?.id || 'demo'}`
+  // Determine the correct identifier based on privacy settings
+  const getDisplayIdentifier = () => {
+    // If privacy mode is enabled and custom slug exists, use the custom slug
+    if (preferences?.privacySettings && !preferences.privacySettings.isPublic && preferences.privacySettings.customSlug) {
+      return preferences.privacySettings.customSlug
+    }
+    // Otherwise use the default Spotify ID
+    return session?.spotifyId || profile?.id || 'demo'
+  }
+
+  const displayIdentifier = getDisplayIdentifier()
+  const publicDisplayUrl = `${baseUrl}/display/${displayIdentifier}`
+  const streamingUrl = `${baseUrl}/stream/${displayIdentifier}`
 
   return (
     <div className="min-h-screen bg-background pt-24">
@@ -144,7 +193,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="music">🎵 Music</TabsTrigger>
-              <TabsTrigger value="displays">🔗 Display Links</TabsTrigger>
+              <TabsTrigger value="streaming">🎥 Streaming</TabsTrigger>
               <TabsTrigger value="settings">⚙️ Settings</TabsTrigger>
             </TabsList>
           </div>
@@ -158,9 +207,17 @@ export default function Dashboard() {
                   <CardTitle className="flex items-center space-x-2">
                     <Eye className="h-5 w-5 text-primary" />
                     <span>Public Display</span>
+                    {preferences?.privacySettings && !preferences.privacySettings.isPublic && (
+                      <Badge variant="secondary" className="text-xs">
+                        🔒 Private
+                      </Badge>
+                    )}
                   </CardTitle>
                   <CardDescription>
-                    Share your music with anyone
+                    {preferences?.privacySettings && !preferences.privacySettings.isPublic
+                      ? "Your private custom link - only people with this URL can access it"
+                      : "Share your music with anyone"
+                    }
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -199,9 +256,17 @@ export default function Dashboard() {
                   <CardTitle className="flex items-center space-x-2">
                     <Monitor className="h-5 w-5 text-primary" />
                     <span>Streaming Overlay</span>
+                    {preferences?.privacySettings && !preferences.privacySettings.isPublic && (
+                      <Badge variant="secondary" className="text-xs">
+                        🔒 Private
+                      </Badge>
+                    )}
                   </CardTitle>
                   <CardDescription>
-                    For OBS and streaming software
+                    {preferences?.privacySettings && !preferences.privacySettings.isPublic
+                      ? "Private overlay for OBS and streaming software"
+                      : "For OBS and streaming software"
+                    }
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -262,61 +327,26 @@ export default function Dashboard() {
             </div>
           </TabsContent>
 
-          {/* Display Links Tab */}
-          <TabsContent value="displays" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Eye className="h-5 w-5 text-primary" />
-                    <span>Public Display</span>
-                  </CardTitle>
-                  <CardDescription>
-                    Share your music with anyone via this public link
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="bg-muted p-3 rounded-lg text-sm font-mono break-all">
-                    {publicDisplayUrl}
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      onClick={() => copyToClipboard(publicDisplayUrl, 'public')}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center space-x-2"
-                    >
-                      {copiedUrl === 'public' ? (
-                        <Check className="h-4 w-4" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                      <span>{copiedUrl === 'public' ? 'Copied!' : 'Copy'}</span>
-                    </Button>
-                    <Button
-                      onClick={() => window.open(publicDisplayUrl, '_blank')}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center space-x-2"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      <span>Open</span>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Monitor className="h-5 w-5 text-primary" />
-                    <span>Streaming Overlay</span>
-                  </CardTitle>
-                  <CardDescription>
-                    Transparent overlay perfect for OBS and other streaming software
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+          {/* Streaming Tab */}
+          <TabsContent value="streaming" className="space-y-6">
+            {/* Stream Setup Guide */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Radio className="h-5 w-5 text-primary" />
+                  <span>Stream Setup Guide</span>
+                </CardTitle>
+                <CardDescription>
+                  Get your music overlay running on Twitch, YouTube, or any streaming platform
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Stream URL */}
+                <div className="space-y-3">
+                  <h4 className="font-medium flex items-center space-x-2">
+                    <Monitor className="h-4 w-4" />
+                    <span>Your Stream Overlay URL</span>
+                  </h4>
                   <div className="bg-muted p-3 rounded-lg text-sm font-mono break-all">
                     {streamingUrl}
                   </div>
@@ -332,7 +362,7 @@ export default function Dashboard() {
                       ) : (
                         <Copy className="h-4 w-4" />
                       )}
-                      <span>{copiedUrl === 'streaming' ? 'Copied!' : 'Copy'}</span>
+                      <span>{copiedUrl === 'streaming' ? 'Copied!' : 'Copy URL'}</span>
                     </Button>
                     <Button
                       onClick={() => window.open(streamingUrl, '_blank')}
@@ -341,22 +371,212 @@ export default function Dashboard() {
                       className="flex items-center space-x-2"
                     >
                       <ExternalLink className="h-4 w-4" />
-                      <span>Open</span>
+                      <span>Test Overlay</span>
                     </Button>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    <p className="font-medium mb-1">OBS Setup:</p>
-                    <ol className="list-decimal list-inside space-y-1">
-                      <li>Add Browser Source</li>
-                      <li>Set URL to the streaming URL above</li>
-                      <li>Set Width: 400, Height: 200</li>
-                      <li>Check "Shutdown source when not visible"</li>
-                      <li>Check "Refresh browser when scene becomes active"</li>
+                </div>
+
+                {/* OBS Setup Steps */}
+                <div className="space-y-3">
+                  <h4 className="font-medium flex items-center space-x-2">
+                    <Tv className="h-4 w-4" />
+                    <span>OBS Studio Setup</span>
+                  </h4>
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <ol className="list-decimal list-inside space-y-2 text-sm">
+                      <li>In OBS, click the <strong>+</strong> in Sources</li>
+                      <li>Add <strong>Browser Source</strong></li>
+                      <li>Name it "Music Overlay" and click OK</li>
+                      <li>Set URL to your stream overlay URL above</li>
+                      <li>Set Width: <strong>400</strong>, Height: <strong>200</strong></li>
+                      <li>Check ✅ <strong>"Shutdown source when not visible"</strong></li>
+                      <li>Check ✅ <strong>"Refresh browser when scene becomes active"</strong></li>
+                      <li>Click OK and position the overlay on your stream</li>
                     </ol>
+                  </div>
+                </div>
+
+                {/* Other Streaming Software */}
+                <div className="space-y-3">
+                  <h4 className="font-medium">Other Streaming Software</h4>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="bg-muted/50 p-3 rounded-lg text-sm">
+                      <h5 className="font-medium mb-1">Streamlabs OBS</h5>
+                      <p className="text-muted-foreground">Add Widget → Custom → Browser Source</p>
+                    </div>
+                    <div className="bg-muted/50 p-3 rounded-lg text-sm">
+                      <h5 className="font-medium mb-1">XSplit</h5>
+                      <p className="text-muted-foreground">Add Source → Web Page → Enter URL</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Stream Customization */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Code className="h-5 w-5 text-primary" />
+                    <span>Custom CSS Examples</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Copy and paste these styles to customize your stream overlay
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-4">
+                    {/* Glow Effect */}
+                    <div className="space-y-2">
+                      <h5 className="font-medium text-sm">🌟 Glowing Border Effect</h5>
+                      <div className="bg-gray-900 p-3 rounded-lg text-xs font-mono text-green-400 overflow-x-auto">
+                        <pre>{`.stream-card {
+  border: 2px solid #10b981;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+  animation: glow 2s infinite alternate;
+}
+
+@keyframes glow {
+  from { box-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
+  to { box-shadow: 0 0 30px rgba(16, 185, 129, 0.8); }
+}`}</pre>
+                      </div>
+                    </div>
+
+                    {/* Neon Theme */}
+                    <div className="space-y-2">
+                      <h5 className="font-medium text-sm">💜 Cyberpunk Neon Style</h5>
+                      <div className="bg-gray-900 p-3 rounded-lg text-xs font-mono text-green-400 overflow-x-auto">
+                        <pre>{`.stream-container {
+  background: linear-gradient(45deg, #1a0033, #330066);
+  border: 1px solid #ff00ff;
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
+}
+
+.track-title {
+  color: #00ffff;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+.track-artist {
+  color: #ff00ff;
+}`}</pre>
+                      </div>
+                    </div>
+
+                    {/* Gaming Theme */}
+                    <div className="space-y-2">
+                      <h5 className="font-medium text-sm">🎮 Gaming Theme</h5>
+                      <div className="bg-gray-900 p-3 rounded-lg text-xs font-mono text-green-400 overflow-x-auto">
+                        <pre>{`.stream-container {
+  background: rgba(0, 0, 0, 0.9);
+  border: 2px solid #00ff41;
+  border-radius: 0;
+  font-family: 'Courier New', monospace;
+}
+
+.track-title {
+  color: #00ff41;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.album-art {
+  filter: hue-rotate(120deg) saturate(1.5);
+}`}</pre>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      💡 <strong>Tip:</strong> Go to Settings → Display & Privacy Settings → Custom CSS to apply these styles
+                    </p>
                   </div>
                 </CardContent>
               </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Settings className="h-5 w-5 text-primary" />
+                    <span>Stream Settings</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Configure your overlay appearance and behavior
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Customize your stream overlay with custom css in the style tab, positioning, and privacy settings.
+                  </p>
+
+                  <SettingsModal isFullVersion={true}>
+                    <Button className="w-full" variant="outline">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Open Stream Settings
+                    </Button>
+                  </SettingsModal>
+                </CardContent>
+              </Card>
             </div>
+
+            {/* Public Display Link */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Eye className="h-5 w-5 text-primary" />
+                  <span>Public Display</span>
+                  {preferences?.privacySettings && !preferences.privacySettings.isPublic && (
+                    <Badge variant="secondary" className="text-xs">
+                      🔒 Private
+                    </Badge>
+                  )}
+                </CardTitle>
+                <CardDescription>
+                  {preferences?.privacySettings && !preferences.privacySettings.isPublic
+                    ? "Your private custom link - share only with trusted viewers"
+                    : "Share your music with viewers via this public page"
+                  }
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="bg-muted p-3 rounded-lg text-sm font-mono break-all">
+                  {publicDisplayUrl}
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => copyToClipboard(publicDisplayUrl, 'public')}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center space-x-2"
+                  >
+                    {copiedUrl === 'public' ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                    <span>{copiedUrl === 'public' ? 'Copied!' : 'Copy'}</span>
+                  </Button>
+                  <Button
+                    onClick={() => window.open(publicDisplayUrl, '_blank')}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center space-x-2"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    <span>View Page</span>
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  💡 {preferences?.privacySettings && !preferences.privacySettings.isPublic
+                    ? "This is your private link - only share with trusted viewers"
+                    : "Share this link in your stream description, Discord, or social media"
+                  }
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Settings Tab */}

@@ -186,6 +186,21 @@ export async function createDefaultUserPreferences(userId: string, spotifyId: st
   )
 }
 
+export async function isSlugTaken(slug: string, excludeUserId?: string): Promise<boolean> {
+  const db = await getDatabase()
+  const collection: Collection<UserPreferences> = db.collection("user_preferences")
+
+  const query: any = { "privacySettings.customSlug": slug }
+
+  // If we're updating an existing user, exclude their current record
+  if (excludeUserId) {
+    query.userId = { $ne: excludeUserId }
+  }
+
+  const existingUser = await collection.findOne(query)
+  return existingUser !== null
+}
+
 export async function deleteUser(userId: string): Promise<void> {
   const db = await getDatabase()
 

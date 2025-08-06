@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { getUserPreferences, updateUserPreferences, createDefaultUserPreferences } from "@/lib/db"
+import { getUserPreferences, updateUserPreferences, createDefaultUserPreferences, isSlugTaken } from "@/lib/db"
 import { generateCustomSlug, isValidSlug, isValidImageUrl, sanitizeImageUrl } from "@/lib/utils"
 
 export async function GET(request: NextRequest) {
@@ -49,6 +49,15 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { error: "Invalid custom slug format" },
           { status: 400 }
+        )
+      }
+
+      // Check if slug is already taken by another user
+      const slugTaken = await isSlugTaken(slug, session.userId)
+      if (slugTaken) {
+        return NextResponse.json(
+          { error: "This custom slug is already taken. Please choose a different one." },
+          { status: 409 }
         )
       }
     }

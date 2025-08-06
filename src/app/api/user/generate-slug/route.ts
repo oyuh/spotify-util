@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { generateCustomSlug } from "@/lib/utils"
-import { getUserBySlug, updateUserPreferences, getUserPreferences } from "@/lib/db"
+import { isSlugTaken, updateUserPreferences, getUserPreferences } from "@/lib/db"
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,9 +19,9 @@ export async function POST(request: NextRequest) {
     // Generate a unique slug
     do {
       slug = generateCustomSlug()
-      const existingUser = await getUserBySlug(slug)
+      const slugAlreadyTaken = await isSlugTaken(slug, session.userId)
 
-      if (!existingUser) {
+      if (!slugAlreadyTaken) {
         break
       }
 

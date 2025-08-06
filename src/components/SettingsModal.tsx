@@ -94,6 +94,7 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [imageTestResult, setImageTestResult] = useState<'idle' | 'testing' | 'valid' | 'invalid'>('idle')
+  const [slugCheckResult, setSlugCheckResult] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle')
 
   // Load user preferences
   useEffect(() => {
@@ -125,6 +126,18 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
         return
       }
 
+      // Check if custom slug is taken before saving
+      if (preferences.privacySettings.customSlug && slugCheckResult === 'taken') {
+        toast.error('Cannot save: The custom slug is already taken. Please choose a different one.')
+        return
+      }
+
+      // Check slug format if provided
+      if (preferences.privacySettings.customSlug && slugCheckResult === 'invalid') {
+        toast.error('Cannot save: Invalid slug format. Use only lowercase letters, numbers, and hyphens.')
+        return
+      }
+
       setIsSaving(true)
       console.log('Client - About to save preferences:', JSON.stringify(preferences, null, 2))
 
@@ -145,7 +158,16 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
       } else {
         const errorData = await response.json()
         console.error('Client - Save failed:', errorData)
-        toast.error('Failed to save settings')
+
+        // Handle specific error cases
+        if (response.status === 409) {
+          toast.error(errorData.error || 'This custom slug is already taken. Please choose a different one.')
+          setSlugCheckResult('taken')
+        } else if (response.status === 400) {
+          toast.error(errorData.error || 'Invalid settings data')
+        } else {
+          toast.error('Failed to save settings')
+        }
       }
     } catch (error) {
       console.error('Failed to save preferences:', error)
@@ -157,6 +179,7 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
 
   const generateCustomSlug = async () => {
     try {
+      setSlugCheckResult('checking')
       const response = await fetch('/api/user/generate-slug', {
         method: 'POST',
       })
@@ -169,10 +192,15 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
             customSlug: data.slug
           }
         }))
+        setSlugCheckResult('available')
         toast.success('Custom link generated!')
+      } else {
+        setSlugCheckResult('idle')
+        toast.error('Failed to generate custom link')
       }
     } catch (error) {
       console.error('Failed to generate slug:', error)
+      setSlugCheckResult('idle')
       toast.error('Failed to generate custom link')
     }
   }
@@ -199,6 +227,40 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
     }
   }
 
+  const checkSlugAvailability = async (slug: string) => {
+    if (!slug.trim()) {
+      setSlugCheckResult('idle')
+      return
+    }
+
+    // Basic slug validation
+    if (!/^[a-z0-9-]{3,30}$/.test(slug)) {
+      setSlugCheckResult('invalid')
+      return
+    }
+
+    setSlugCheckResult('checking')
+    try {
+      const response = await fetch('/api/user/check-slug', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ slug }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setSlugCheckResult(data.available ? 'available' : 'taken')
+      } else {
+        setSlugCheckResult('idle')
+      }
+    } catch (error) {
+      console.error('Failed to check slug availability:', error)
+      setSlugCheckResult('idle')
+    }
+  }
+
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text)
     toast.success(`${label} copied to clipboard!`)
@@ -206,44 +268,32 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
 
   const getDisplayUrl = () => {
     const baseUrl = window.location.origin
-    if (!preferences.privacySettings.isPublic && preferences.privacySettings.customSlug) {
-      // Private mode: use public slug endpoint
-      return `${baseUrl}/api/public/display/${preferences.privacySettings.customSlug}`
-    } else if (preferences.privacySettings.customSlug) {
-      // Public mode with custom slug: still use public endpoint for consistency
-      return `${baseUrl}/api/public/display/${preferences.privacySettings.customSlug}`
-    } else {
-      // Public mode without custom slug: use regular endpoint
-      return `${baseUrl}/api/display/${session?.spotifyId}`
-    }
+    // Determine the correct identifier based on privacy settings
+    const identifier = (!preferences.privacySettings.isPublic && preferences.privacySettings.customSlug)
+      ? preferences.privacySettings.customSlug
+      : (preferences.privacySettings.customSlug || session?.spotifyId)
+
+    return `${baseUrl}/display/${identifier}`
   }
 
   const getStreamUrl = () => {
     const baseUrl = window.location.origin
-    if (!preferences.privacySettings.isPublic && preferences.privacySettings.customSlug) {
-      // Private mode: use public slug endpoint
-      return `${baseUrl}/api/public/stream/${preferences.privacySettings.customSlug}`
-    } else if (preferences.privacySettings.customSlug) {
-      // Public mode with custom slug: still use public endpoint for consistency
-      return `${baseUrl}/api/public/stream/${preferences.privacySettings.customSlug}`
-    } else {
-      // Public mode without custom slug: use regular endpoint
-      return `${baseUrl}/api/stream/${session?.spotifyId}`
-    }
+    // Determine the correct identifier based on privacy settings
+    const identifier = (!preferences.privacySettings.isPublic && preferences.privacySettings.customSlug)
+      ? preferences.privacySettings.customSlug
+      : (preferences.privacySettings.customSlug || session?.spotifyId)
+
+    return `${baseUrl}/stream/${identifier}`
   }
 
   const getPublicDisplayUrl = () => {
     const baseUrl = window.location.origin
-    if (!preferences.privacySettings.isPublic && preferences.privacySettings.customSlug) {
-      // Private mode: use slug display page
-      return `${baseUrl}/display/${preferences.privacySettings.customSlug}`
-    } else if (preferences.privacySettings.customSlug) {
-      // Public mode with custom slug: still use slug for consistency
-      return `${baseUrl}/display/${preferences.privacySettings.customSlug}`
-    } else {
-      // Public mode without custom slug: use regular display page
-      return `${baseUrl}/display/${session?.spotifyId}`
-    }
+    // Determine the correct identifier based on privacy settings
+    const identifier = (!preferences.privacySettings.isPublic && preferences.privacySettings.customSlug)
+      ? preferences.privacySettings.customSlug
+      : (preferences.privacySettings.customSlug || session?.spotifyId)
+
+    return `${baseUrl}/display/${identifier}`
   }
 
   if (!session) {
@@ -499,31 +549,78 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
                       }
                     </p>
                   </div>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder={!preferences.privacySettings.isPublic ? "Required for private mode" : "Custom slug (optional)"}
-                      value={preferences.privacySettings.customSlug || ''}
-                      onChange={(e) =>
-                        setPreferences(prev => ({
-                          ...prev,
-                          privacySettings: {
-                            ...prev.privacySettings,
-                            customSlug: e.target.value
-                          }
-                        }))
-                      }
-                      className={!preferences.privacySettings.isPublic && !preferences.privacySettings.customSlug ? "border-red-300" : ""}
-                    />
-                    <Button variant="outline" onClick={generateCustomSlug}>
-                      <Shuffle className="w-4 h-4 mr-2" />
-                      Generate
-                    </Button>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <Input
+                          placeholder={!preferences.privacySettings.isPublic ? "Required for private mode" : "Custom slug (optional)"}
+                          value={preferences.privacySettings.customSlug || ''}
+                          onChange={(e) => {
+                            const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')
+                            setPreferences(prev => ({
+                              ...prev,
+                              privacySettings: {
+                                ...prev.privacySettings,
+                                customSlug: value
+                              }
+                            }))
+                            setSlugCheckResult('idle')
+
+                            // Debounced slug check
+                            if (value.length >= 3) {
+                              setTimeout(() => {
+                                if (preferences.privacySettings.customSlug === value) {
+                                  checkSlugAvailability(value)
+                                }
+                              }, 500)
+                            }
+                          }}
+                          className={`${
+                            !preferences.privacySettings.isPublic && !preferences.privacySettings.customSlug
+                              ? "border-red-300"
+                              : slugCheckResult === 'taken'
+                                ? "border-red-300"
+                                : slugCheckResult === 'available'
+                                  ? "border-green-300"
+                                  : ""
+                          }`}
+                        />
+                        {slugCheckResult !== 'idle' && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+                            {slugCheckResult === 'checking' && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                            {slugCheckResult === 'available' && <CheckCircle className="h-3 w-3 text-green-500" />}
+                            {slugCheckResult === 'taken' && <XCircle className="h-3 w-3 text-red-500" />}
+                            {slugCheckResult === 'invalid' && <XCircle className="h-3 w-3 text-red-500" />}
+                          </div>
+                        )}
+                      </div>
+                      <Button variant="outline" onClick={generateCustomSlug}>
+                        <Shuffle className="w-4 h-4 mr-2" />
+                        Generate
+                      </Button>
+                    </div>
+
+                    {/* Status messages */}
+                    {slugCheckResult === 'checking' && (
+                      <p className="text-xs text-muted-foreground">⏳ Checking availability...</p>
+                    )}
+                    {slugCheckResult === 'available' && preferences.privacySettings.customSlug && (
+                      <p className="text-xs text-green-600">✅ "{preferences.privacySettings.customSlug}" is available!</p>
+                    )}
+                    {slugCheckResult === 'taken' && (
+                      <p className="text-xs text-red-600">❌ This slug is already taken. Please try another one.</p>
+                    )}
+                    {slugCheckResult === 'invalid' && (
+                      <p className="text-xs text-red-600">❌ Invalid format. Use only lowercase letters, numbers, and hyphens (3-30 characters).</p>
+                    )}
                   </div>
-                  {preferences.privacySettings.customSlug && (
+
+                  {preferences.privacySettings.customSlug && slugCheckResult !== 'taken' && (
                     <div className="space-y-2">
                       <Badge variant={preferences.privacySettings.isPublic ? "secondary" : "destructive"} className="break-all">
                         {preferences.privacySettings.isPublic ? "Custom slug: " : "Private URL: "}
                         {preferences.privacySettings.customSlug}
+                        {slugCheckResult === 'available' && " ✓"}
                       </Badge>
                       {!preferences.privacySettings.isPublic && (
                         <p className="text-xs text-muted-foreground">
@@ -547,15 +644,28 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <LinkIcon className="w-4 h-4" />
-                  Public Links
+                  Your Links
                 </CardTitle>
                 <CardDescription>
-                  Share these links to display your music data
+                  Share these links with your audience or use them in OBS
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>API Endpoint (for custom implementations)</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Public Display Page</Label>
+                    {preferences.privacySettings && !preferences.privacySettings.isPublic && (
+                      <Badge variant="secondary" className="text-xs">
+                        🔒 Private
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {preferences.privacySettings && !preferences.privacySettings.isPublic
+                      ? "Your private display page - only people with this URL can access it"
+                      : "Share this page with your audience to show what you're listening to"
+                    }
+                  </p>
                   <div className="flex gap-2">
                     <Input
                       readOnly
@@ -565,7 +675,7 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => copyToClipboard(getDisplayUrl(), 'API URL')}
+                      onClick={() => copyToClipboard(getDisplayUrl(), 'Display Page URL')}
                     >
                       <Copy className="w-4 h-4" />
                     </Button>
@@ -573,7 +683,20 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Streaming Overlay (for OBS/streaming)</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Stream Overlay</Label>
+                    {preferences.privacySettings && !preferences.privacySettings.isPublic && (
+                      <Badge variant="secondary" className="text-xs">
+                        🔒 Private
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {preferences.privacySettings && !preferences.privacySettings.isPublic
+                      ? "Your private stream overlay for OBS - transparent background for overlays"
+                      : "Add this URL as a Browser Source in OBS for transparent stream overlays"
+                    }
+                  </p>
                   <div className="flex gap-2">
                     <Input
                       readOnly
@@ -583,29 +706,22 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => copyToClipboard(getStreamUrl(), 'Stream URL')}
+                      onClick={() => copyToClipboard(getStreamUrl(), 'Stream Overlay URL')}
                     >
                       <Copy className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Public Display Page</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      readOnly
-                      value={getPublicDisplayUrl()}
-                      className="font-mono text-sm"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyToClipboard(getPublicDisplayUrl(), 'Display URL')}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
+                <div className="p-3 bg-muted/50 rounded-lg border">
+                  <h4 className="text-sm font-medium mb-2">💡 Quick Tips</h4>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• <strong>Display Page:</strong> Perfect for sharing on social media, Discord, or your website</li>
+                    <li>• <strong>Stream Overlay:</strong> Add to OBS as Browser Source with transparent background</li>
+                    {preferences.privacySettings && !preferences.privacySettings.isPublic && (
+                      <li>• <strong>Private Mode:</strong> Only people with these exact URLs can access your music data</li>
+                    )}
+                  </ul>
                 </div>
               </CardContent>
             </Card>

@@ -76,7 +76,6 @@ export interface UserPreferences {
     style: string // Display style ID (minimal, spotify-classic, neon-purple, etc.)
     customCSS?: string
     backgroundImage?: string // URL to custom background image
-    streamerMode: boolean
     position?: {
       x: number
       y: number
@@ -174,7 +173,6 @@ export async function createDefaultUserPreferences(userId: string, spotifyId: st
     },
     displaySettings: {
       style: "minimal", // Default display style
-      streamerMode: false,
       // backgroundImage field will be undefined by default
     },
     createdAt: new Date(),

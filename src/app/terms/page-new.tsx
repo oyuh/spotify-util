@@ -69,7 +69,7 @@ export default function TermsPage() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
-          
+
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <Scale className="w-5 h-5 text-primary" />
@@ -103,14 +103,14 @@ export default function TermsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm">
-              These Terms of Service ("Terms") govern your use of SpotifyUtil ("Service") operated by our team ("us", "we", or "our"). 
+              These Terms of Service ("Terms") govern your use of SpotifyUtil ("Service") operated by our team ("us", "we", or "our").
               By accessing or using our service, you agree to be bound by these Terms.
             </p>
-            
+
             <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">🤝 Simple Summary</h4>
               <p className="text-sm text-blue-700 dark:text-blue-300">
-                Use SpotifyUtil to display your music, be respectful to others, don't break anything, 
+                Use SpotifyUtil to display your music, be respectful to others, don't break anything,
                 and we'll provide you with a great service. That's the gist of it!
               </p>
             </div>
@@ -164,7 +164,7 @@ export default function TermsPage() {
             <p className="text-sm">
               SpotifyUtil integrates with Spotify's Web API to display your music data. Please note:
             </p>
-            
+
             <div className="space-y-3">
               <div className="p-3 bg-muted/50 rounded-lg">
                 <h5 className="font-medium text-sm mb-1">Spotify's Terms Apply</h5>
@@ -172,14 +172,14 @@ export default function TermsPage() {
                   Your use of Spotify through our service is also subject to Spotify's Terms of Service
                 </p>
               </div>
-              
+
               <div className="p-3 bg-muted/50 rounded-lg">
                 <h5 className="font-medium text-sm mb-1">API Limitations</h5>
                 <p className="text-xs text-muted-foreground">
                   Service functionality depends on Spotify's API availability and rate limits
                 </p>
               </div>
-              
+
               <div className="p-3 bg-muted/50 rounded-lg">
                 <h5 className="font-medium text-sm mb-1">Account Linking</h5>
                 <p className="text-xs text-muted-foreground">
@@ -199,7 +199,7 @@ export default function TermsPage() {
             <p className="text-sm">
               Your privacy is important to us. Here's how we handle your data:
             </p>
-            
+
             <div className="grid gap-3 md:grid-cols-2">
               <div className="p-3 border rounded-lg">
                 <h5 className="font-medium text-sm mb-1">Minimal Collection</h5>
@@ -218,7 +218,7 @@ export default function TermsPage() {
                 <p className="text-xs text-muted-foreground">Full compliance with privacy regulations</p>
               </div>
             </div>
-            
+
             <p className="text-xs text-muted-foreground">
               For detailed information, please read our <Button variant="link" className="h-auto p-0 text-xs" onClick={() => router.push('/privacy')}>Privacy Policy</Button>.
             </p>
@@ -234,7 +234,7 @@ export default function TermsPage() {
             <p className="text-sm">
               While we strive to provide a reliable service, please understand:
             </p>
-            
+
             <div className="space-y-2">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-500 mt-1 flex-shrink-0" />
@@ -261,7 +261,7 @@ export default function TermsPage() {
             <p className="text-sm">
               We may update these Terms from time to time. When we do:
             </p>
-            
+
             <div className="space-y-2">
               <div className="flex items-start gap-2">
                 <span className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></span>

@@ -18,7 +18,7 @@ export default function StreamLayout({
         right: 0,
         bottom: 0,
         zIndex: 9999
-      }}>
+      }} data-stream-container="true">
       <style dangerouslySetInnerHTML={{
         __html: `
           body {

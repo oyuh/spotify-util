@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Music, Clock, User } from 'lucide-react'
 import Image from 'next/image'
 import { formatDuration, getMediumImage } from '@/lib/utils'
+import { useBackgroundImage } from '@/hooks/use-background-image'
 import { useDisplayStyle, useDisplayStyleClasses } from '@/contexts/display-style-context'
 import { getDisplayStyle } from '@/lib/app-themes'
 // import { ViewCounter } from '@/components/ViewCounter'
@@ -49,8 +50,18 @@ export default function PublicDisplay() {
   console.log('DISPLAY PAGE: Component rendering!')
   const params = useParams()
   const identifier = params.identifier as string
-  const { setStyle, applyStyle, setStyleWithPreferences } = useDisplayStyle()
+  const { setStyle, applyStyle } = useDisplayStyle()
   const styleClasses = useDisplayStyleClasses()
+
+  // Background image state
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | undefined>()
+
+  // Background image hook
+  const backgroundImageHook = useBackgroundImage({
+    imageUrl: backgroundImageUrl,
+    containerId: 'display-background'
+  })
+
   const [currentTrack, setCurrentTrack] = useState<DisplayTrack | null>(null)
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
@@ -60,6 +71,8 @@ export default function PublicDisplay() {
   const [userStyle, setUserStyle] = useState<string>('minimal')
   const [displayName, setDisplayName] = useState<string>('SpotifyUtil')
   const [hasBackgroundImage, setHasBackgroundImage] = useState<boolean>(false)
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false)
+  const [autoRefreshTriggered, setAutoRefreshTriggered] = useState(false)
 
   // Update document title when display name changes
   useEffect(() => {
@@ -68,113 +81,96 @@ export default function PublicDisplay() {
     }
   }, [displayName])
 
+  // Combined effect to load both preferences and track data in one call
   useEffect(() => {
-    console.log('DISPLAY PAGE: useEffect for style starting, identifier:', identifier)
-    const fetchUserStyle = async () => {
-      try {
-        console.log('🎨 Display Page: Fetching style for identifier:', identifier)
+    console.log('DISPLAY PAGE: Combined useEffect starting, identifier:', identifier)
 
-        // Use the same endpoint logic as track fetching to ensure consistency
+    const fetchDisplayData = async () => {
+      try {
+        setLoading(true)
+        console.log('🎨 Display Page: Fetching display data for identifier:', identifier)
+
+        // Single API call to get both preferences and track data
         let response: Response
 
         // First try as a slug
-        console.log('🎨 Display Page: Trying slug endpoint for style')
-        response = await fetch(`/api/public/display/${identifier}`)
-        console.log('🎨 Display Page: Slug API response status:', response.status)
-
-        // If slug fails with 404, try as Spotify ID
-        if (!response.ok && response.status === 404) {
-          console.log('🎨 Display Page: Slug failed, trying Spotify ID endpoint for style')
-          response = await fetch(`/api/display/${identifier}`)
-          console.log('🎨 Display Page: Spotify ID API response status:', response.status)
-        }
-
-        if (response.ok) {
-          const userData = await response.json()
-          console.log('🎨 Display Page: API response data:', userData)
-          console.log('🎨 Display Page: Preferences found:', userData.preferences)
-
-          // Set display name from user preferences or identifier
-          if (userData.preferences?.publicDisplaySettings?.displayName) {
-            setDisplayName(userData.preferences.publicDisplaySettings.displayName)
-          } else if (userData.preferences?.slug) {
-            setDisplayName(userData.preferences.slug)
-          } else {
-            setDisplayName(identifier)
-          }
-
-          if (userData.preferences?.displaySettings?.style) {
-            const styleId = userData.preferences.displaySettings.style
-            console.log('🎨 Display Page: Setting style to:', styleId)
-
-            // Create a custom style object if user has background image
-            const customBackground = userData.preferences.displaySettings.backgroundImage
-            console.log('🎨 Display Page: Background image check:', customBackground)
-            if (customBackground) {
-              console.log('🎨 Display Page: Custom background image found:', customBackground)
-              setHasBackgroundImage(true)
-              // Use setStyleWithPreferences to properly handle the background image
-              setStyleWithPreferences(styleId, userData.preferences)
-            } else {
-              console.log('🎨 Display Page: No custom background, using standard style')
-              setHasBackgroundImage(false)
-              setStyle(styleId)
-            }
-            return
-          } else {
-            console.log('🎨 Display Page: No style in preferences, using minimal')
-            setHasBackgroundImage(false)
-          }
-        } else {
-          console.log('🎨 Display Page: API call failed, using minimal')
-          setHasBackgroundImage(false)
-        }
-
-        // Use default style if no preferences found
-        console.log('🎨 Display Page: Falling back to minimal style')
-        setDisplayName(identifier) // Set display name to identifier as fallback
-        setHasBackgroundImage(false)
-        setStyle('minimal')
-      } catch (error) {
-        console.error('🎨 Display Page: Error fetching user style:', error)
-        // Use default style on error
-        setDisplayName(identifier) // Set display name to identifier as fallback
-        setHasBackgroundImage(false)
-        setStyle('minimal')
-      }
-    }
-
-    fetchUserStyle()
-  }, [identifier]) // Simplified dependency array
-
-  useEffect(() => {
-    const fetchCurrentTrack = async (isInitial = false) => {
-      try {
-        let apiUrl: string
-        let response: Response
-
-        // Use the exact same endpoint logic as style fetching
-        console.log('Trying slug endpoint for track data:', `/api/public/display/${identifier}`)
+        console.log('🎨 Display Page: Trying slug endpoint')
         response = await fetch(`/api/public/display/${identifier}`, {
-          cache: 'no-store', // Prevent caching issues
+          cache: 'no-store',
           headers: {
             'Cache-Control': 'no-cache',
           }
         })
+        console.log('🎨 Display Page: Slug API response status:', response.status)
 
-        // If slug fails with 404, try as Spotify ID (same as style fetching)
+        // If slug fails with 404, try as Spotify ID
         if (!response.ok && response.status === 404) {
-          console.log('Slug failed, trying Spotify ID endpoint for track data:', `/api/display/${identifier}`)
+          console.log('🎨 Display Page: Slug failed, trying Spotify ID endpoint')
           response = await fetch(`/api/display/${identifier}`, {
-            cache: 'no-store', // Prevent caching issues
+            cache: 'no-store',
             headers: {
               'Cache-Control': 'no-cache',
             }
           })
+          console.log('🎨 Display Page: Spotify ID API response status:', response.status)
         }
 
         if (response.ok) {
           const data = await response.json()
+          console.log('🎨 Display Page: Combined API response data:', data)
+
+          // FIRST: Apply preferences/style (most important to fix the race condition)
+          if (data.preferences) {
+            console.log('🎨 Display Page: Applying preferences:', data.preferences)
+
+            // Set display name
+            if (data.preferences?.publicDisplaySettings?.displayName) {
+              setDisplayName(data.preferences.publicDisplaySettings.displayName)
+            } else if (data.preferences?.slug) {
+              setDisplayName(data.preferences.slug)
+            } else {
+              setDisplayName(identifier)
+            }
+
+            // Apply style with preferences
+            if (data.preferences?.displaySettings?.style) {
+              const styleId = data.preferences.displaySettings.style
+              console.log('🎨 Display Page: Setting style to:', styleId)
+
+              const customBackground = data.preferences.displaySettings.backgroundImage
+              console.log('🎨 Display Page: Background image check:', customBackground)
+
+              if (customBackground) {
+                console.log('🎨 Display Page: Custom background image found:', customBackground)
+                setHasBackgroundImage(true)
+                setBackgroundImageUrl(customBackground) // Use new hook state
+                setStyle(styleId) // Use regular style without background
+              } else {
+                console.log('🎨 Display Page: No custom background, using standard style')
+                setHasBackgroundImage(false)
+                setBackgroundImageUrl(undefined) // Clear background
+                setStyle(styleId)
+              }
+              setUserStyle(styleId)
+            } else {
+              console.log('🎨 Display Page: No style in preferences, using minimal')
+              setHasBackgroundImage(false)
+              setBackgroundImageUrl(undefined) // Clear background
+              setStyle('minimal')
+              setUserStyle('minimal')
+            }
+
+            setPreferencesLoaded(true)
+          } else {
+            console.log('🎨 Display Page: No preferences found, using defaults')
+            setDisplayName(identifier)
+            setHasBackgroundImage(false)
+            setStyle('minimal')
+            setUserStyle('minimal')
+            setPreferencesLoaded(true)
+          }
+
+          // SECOND: Set track data
           console.log('Track data received:', data)
           setCurrentTrack(data)
           setLastUpdate(new Date())
@@ -185,8 +181,16 @@ export default function PublicDisplay() {
             setFakeProgress(data.progress_ms)
             setLastUpdateTime(Date.now())
           }
+
         } else if (response.status === 404) {
           // Neither slug nor Spotify ID worked
+          console.log('🎨 Display Page: 404 error, user not found')
+          setDisplayName(identifier)
+          setHasBackgroundImage(false)
+          setStyle('minimal')
+          setUserStyle('minimal')
+          setPreferencesLoaded(true)
+
           setCurrentTrack({
             name: '',
             artists: [],
@@ -198,7 +202,14 @@ export default function PublicDisplay() {
           })
         }
       } catch (error) {
-        console.error('Error fetching track:', error)
+        console.error('🎨 Display Page: Error fetching display data:', error)
+        // Use defaults on error
+        setDisplayName(identifier)
+        setHasBackgroundImage(false)
+        setStyle('minimal')
+        setUserStyle('minimal')
+        setPreferencesLoaded(true)
+
         setCurrentTrack({
           name: '',
           artists: [],
@@ -209,20 +220,81 @@ export default function PublicDisplay() {
           error: 'Error loading display'
         })
       } finally {
-        if (isInitial) {
-          setLoading(false)
-        }
+        setLoading(false)
       }
     }
 
-    // Initial fetch
-    fetchCurrentTrack(true)
+    fetchDisplayData()
+  }, [identifier, setStyle])
 
-    // Refresh every 20 seconds for real data
-    const realInterval = setInterval(() => fetchCurrentTrack(false), 20000)
+  // Auto-refresh fallback if preferences didn't load correctly
+  useEffect(() => {
+    if (!autoRefreshTriggered && !loading) {
+      const timer = setTimeout(() => {
+        if (!preferencesLoaded) {
+          console.log('🔄 Auto-refreshing page due to preferences not loading')
+          setAutoRefreshTriggered(true)
+          window.location.reload()
+        }
+      }, 2000) // Wait 2 seconds then auto-refresh if preferences didn't load
 
-    return () => clearInterval(realInterval)
-  }, [identifier])
+      return () => clearTimeout(timer)
+    }
+  }, [loading, preferencesLoaded, autoRefreshTriggered])
+
+  // Regular track updates (separate from initial load)
+  useEffect(() => {
+    if (!preferencesLoaded) return // Don't start regular updates until preferences are loaded
+
+    const fetchCurrentTrack = async () => {
+      try {
+        let response: Response
+
+        // Use the same endpoint logic as initial load
+        console.log('Updating track data for:', identifier)
+        response = await fetch(`/api/public/display/${identifier}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+          }
+        })
+
+        if (!response.ok && response.status === 404) {
+          response = await fetch(`/api/display/${identifier}`, {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache',
+            }
+          })
+        }
+
+        if (response.ok) {
+          const data = await response.json()
+          console.log('Track update received:', data)
+          setCurrentTrack(data)
+          setLastUpdate(new Date())
+
+          if (data.progress_ms) {
+            setLastRealProgress(data.progress_ms)
+            setFakeProgress(data.progress_ms)
+            setLastUpdateTime(Date.now())
+          }
+        }
+      } catch (error) {
+        console.error('Error updating track:', error)
+      }
+    }
+
+    // Initial delay, then regular updates
+    const initialDelay = setTimeout(() => {
+      fetchCurrentTrack()
+
+      const interval = setInterval(fetchCurrentTrack, 5000)
+      return () => clearInterval(interval)
+    }, 5000)
+
+    return () => clearTimeout(initialDelay)
+  }, [identifier, preferencesLoaded])
 
   // Fake progress updates every second for smooth animation
   useEffect(() => {
@@ -304,7 +376,7 @@ export default function PublicDisplay() {
   const progressPercent = duration > 0 ? (currentProgress / duration) * 100 : 0
 
   return (
-    <div className={`min-h-screen ${styleClasses.background} ${hasBackgroundImage ? 'display-with-bg' : ''} flex items-center justify-center p-4`}>
+    <div id="display-background" className={`min-h-screen ${styleClasses.background} ${hasBackgroundImage ? 'display-with-bg' : ''} flex items-center justify-center p-4`}>
       <div className={`w-full ${track.recent_tracks && track.recent_tracks.length > 0 ? 'max-w-6xl' : 'max-w-2xl'} ${styleClasses.shadow}`}>
         <div className={`${track.recent_tracks && track.recent_tracks.length > 0 ? 'grid grid-cols-1 lg:grid-cols-3 gap-6' : ''}`}>
           {/* Main Track Display */}

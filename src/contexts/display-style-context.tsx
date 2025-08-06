@@ -4,9 +4,8 @@ import { DisplayStyle, getDisplayStyle } from '@/lib/app-themes'
 
 interface DisplayStyleContextType {
   style: DisplayStyle
-  setStyle: (styleId: string, backgroundImage?: string) => void
+  setStyle: (styleId: string) => void
   applyStyle: (style: DisplayStyle) => void
-  setStyleWithPreferences: (styleId: string, preferences: any) => void
 }
 
 const DisplayStyleContext = createContext<DisplayStyleContextType | undefined>(undefined)
@@ -21,151 +20,48 @@ export function DisplayStyleProvider({
   initialStyle = 'minimal'
 }: DisplayStyleProviderProps) {
   const [style, setStyleState] = useState<DisplayStyle>(getDisplayStyle(initialStyle))
-  const [backgroundImage, setBackgroundImage] = useState<string | undefined>()
 
   const applyStyle = useCallback((style: DisplayStyle) => {
     console.log('🎨 DisplayStyleContext: applyStyle called with:', style)
     if (typeof document !== 'undefined') {
-      // Find the display container to apply styles only there
-      const displayContainer = document.querySelector('[data-display-container="true"]') as HTMLElement
+      // Find the stream container to apply styles only there
+      const streamContainer = document.querySelector('[data-stream-container="true"]') as HTMLElement
 
-      if (!displayContainer) {
-        console.warn('🚨 Display container not found - styles will not be applied')
+      if (!streamContainer) {
+        console.warn('🚨 Stream container not found - styles will not be applied')
         return
       }
 
-      console.log('🎯 Found display container, applying styles locally only')
+      console.log('🎯 Found stream container, applying styles locally only')
 
-      // Apply custom CSS if provided (still global since it's in head)
+      // Apply custom CSS if provided (scoped to stream pages only)
       if (style.customCSS) {
-        console.log('🎨 Applying custom CSS')
-        let customStyleElement = document.getElementById('display-custom-css')
+        console.log('🎨 Applying custom CSS for stream page')
+        let customStyleElement = document.getElementById('stream-custom-css')
         if (!customStyleElement) {
           customStyleElement = document.createElement('style')
-          customStyleElement.id = 'display-custom-css'
+          customStyleElement.id = 'stream-custom-css'
           document.head.appendChild(customStyleElement)
         }
         customStyleElement.textContent = style.customCSS
       }
 
-      // Store style data on display container only
-      displayContainer.setAttribute('data-display-style', style.id)
-      displayContainer.setAttribute('data-display-category', style.category)
+      // Store style data on stream container only
+      streamContainer.setAttribute('data-stream-style', style.id)
+      streamContainer.setAttribute('data-stream-category', style.category)
 
-      // Apply background image (from style or global state)
-      const bgImage = style.backgroundImage || backgroundImage
-
-      // If there's a background image, apply it to display container only
-      if (bgImage) {
-        displayContainer.setAttribute('data-has-bg-image', 'true')
-        console.log('🖼️ Setting background image:', bgImage)
-
-        // Test the image before applying it - try fixing CORS and URL issues
-        const testImage = new Image()
-        testImage.crossOrigin = 'anonymous' // Handle CORS
-        testImage.onload = () => {
-          console.log('🖼️ Background image loaded successfully:', bgImage)
-          // Try different URL formats to fix the issue
-          const imageUrl = bgImage.includes('i.ibb.co') ?
-            bgImage.replace('/C5j9bG1m/', '/C5j9bG1/') : // Fix potential ibb.co URL issue
-            bgImage
-
-          displayContainer.style.backgroundImage = `url("${imageUrl}")`
-          displayContainer.style.backgroundSize = 'cover'
-          displayContainer.style.backgroundPosition = 'center'
-          displayContainer.style.backgroundRepeat = 'no-repeat'
-          displayContainer.style.backgroundAttachment = 'fixed'
-          console.log('🖼️ Applied background image to display container:', imageUrl)
-        }
-        testImage.onerror = (error) => {
-          console.error('🖼️ Background image failed to load:', bgImage, error)
-
-          // Try alternative URL format for ibb.co
-          if (bgImage.includes('i.ibb.co') && bgImage.includes('/C5j9bG1m/')) {
-            const altUrl = bgImage.replace('/C5j9bG1m/', '/C5j9bG1/')
-            console.log('🔄 Trying alternative URL format:', altUrl)
-
-            const retryImage = new Image()
-            retryImage.crossOrigin = 'anonymous'
-            retryImage.onload = () => {
-              console.log('🖼️ Alternative URL worked:', altUrl)
-              displayContainer.style.backgroundImage = `url("${altUrl}")`
-              displayContainer.style.backgroundSize = 'cover'
-              displayContainer.style.backgroundPosition = 'center'
-              displayContainer.style.backgroundRepeat = 'no-repeat'
-              displayContainer.style.backgroundAttachment = 'fixed'
-            }
-            retryImage.onerror = () => {
-              console.error('🖼️ Alternative URL also failed, removing background')
-              displayContainer.removeAttribute('data-has-bg-image')
-              displayContainer.style.backgroundImage = ''
-            }
-            retryImage.src = altUrl
-          } else {
-            // Remove background image but keep the theme applied
-            displayContainer.removeAttribute('data-has-bg-image')
-            displayContainer.style.backgroundImage = ''
-            displayContainer.style.backgroundSize = ''
-            displayContainer.style.backgroundPosition = ''
-            displayContainer.style.backgroundRepeat = ''
-            displayContainer.style.backgroundAttachment = ''
-            console.log('🖼️ Continuing with theme but without background image')
-          }
-        }
-
-        // Set timeout for image loading
-        setTimeout(() => {
-          if (!testImage.complete) {
-            console.warn('🖼️ Background image loading timeout, proceeding without image')
-            testImage.onerror = null
-            testImage.onload = null
-          }
-        }, 5000)
-        testImage.src = bgImage
-      } else {
-        console.log('🖼️ No background image, removing background properties')
-        displayContainer.removeAttribute('data-has-bg-image')
-        displayContainer.style.backgroundImage = ''
-        displayContainer.style.backgroundSize = ''
-        displayContainer.style.backgroundPosition = ''
-        displayContainer.style.backgroundRepeat = ''
-        displayContainer.style.backgroundAttachment = ''
-      }
-
-      console.log('🎨 DisplayStyleContext: applyStyle completed (display container only)')
+      console.log('🎨 DisplayStyleContext: applyStyle completed (stream container only)')
     }
-  }, [backgroundImage])
+  }, [])
 
-  const setStyle = useCallback((styleId: string, backgroundImage?: string) => {
-    console.log('🎨 DisplayStyleContext: Setting style to:', styleId, 'with background:', backgroundImage)
-    const baseStyle = getDisplayStyle(styleId)
-    console.log('🎨 DisplayStyleContext: Found style:', baseStyle)
-
-    // Create a proper copy of the style to avoid mutation
-    const newStyle = {
-      ...baseStyle,
-      backgroundImage: baseStyle.backgroundImage // Keep any existing background from the style
-    }
-
-    // If a background image was explicitly provided, use it
-    if (backgroundImage !== undefined) {
-      newStyle.backgroundImage = backgroundImage
-      setBackgroundImage(backgroundImage)
-      console.log('🖼️ DisplayStyleContext: Using provided background image:', backgroundImage)
-    }
+  const setStyle = useCallback((styleId: string) => {
+    console.log('🎨 DisplayStyleContext: Setting style to:', styleId)
+    const newStyle = getDisplayStyle(styleId)
+    console.log('🎨 DisplayStyleContext: Found style:', newStyle)
 
     setStyleState(newStyle)
     applyStyle(newStyle)
   }, [applyStyle])
-
-  const setStyleWithPreferences = useCallback((styleId: string, preferences: any) => {
-    console.log('🎨 DisplayStyleContext: setStyleWithPreferences called with:', { styleId, preferences })
-
-    const bgImage = preferences?.displaySettings?.backgroundImage
-    console.log('🖼️ DisplayStyleContext: Background image from preferences:', bgImage)
-
-    setStyle(styleId, bgImage)
-  }, [setStyle])
 
   useEffect(() => {
     console.log('🎨 DisplayStyleContext: Component mounted, applying initial style')
@@ -176,8 +72,7 @@ export function DisplayStyleProvider({
     <DisplayStyleContext.Provider value={{
       style,
       setStyle,
-      applyStyle,
-      setStyleWithPreferences
+      applyStyle
     }}>
       {children}
     </DisplayStyleContext.Provider>

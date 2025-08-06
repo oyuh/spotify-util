@@ -49,7 +49,6 @@ interface TrackData {
     theme: string
     customCSS?: string
     backgroundImage?: string
-    streamerMode: boolean
     position?: { x: number; y: number }
   }
 }
@@ -154,32 +153,22 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
     return () => clearInterval(fakeInterval)
   }, [trackData?.is_playing, trackData?.duration_ms, lastRealProgress, lastUpdateTime])
 
-  // Custom CSS and background image injection
+  // Custom CSS injection for stream page styling only
   useEffect(() => {
     if (trackData?.settings?.customCSS) {
       const style = document.createElement("style")
       style.textContent = trackData.settings.customCSS
+      style.id = "stream-custom-css"
       document.head.appendChild(style)
 
       return () => {
-        document.head.removeChild(style)
+        const existingStyle = document.getElementById("stream-custom-css")
+        if (existingStyle) {
+          document.head.removeChild(existingStyle)
+        }
       }
     }
   }, [trackData?.settings?.customCSS])
-
-  // Apply background image if provided
-  useEffect(() => {
-    if (trackData?.settings?.backgroundImage) {
-      const root = document.documentElement
-      root.style.setProperty('--display-bg-image', `url(${trackData.settings.backgroundImage})`)
-      root.style.setProperty('--display-bg-blend', 'overlay')
-
-      return () => {
-        root.style.removeProperty('--display-bg-image')
-        root.style.removeProperty('--display-bg-blend')
-      }
-    }
-  }, [trackData?.settings?.backgroundImage])
 
   if (loading) {
     return (
@@ -268,12 +257,12 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
       }} />
       <div className="min-h-screen bg-transparent flex items-start justify-start p-4">
       {/* Clean Streamer Overlay */}
-      <div className="bg-transparent border-0 max-w-xs w-full">
-        <div className="p-0">
+      <div className="bg-transparent border-0 max-w-xs w-full stream-container">
+        <div className="p-0 stream-card">
           <div className="flex items-center space-x-3">
             {/* Album Art */}
             {albumImage && (
-              <div className="relative w-14 h-14 rounded-md overflow-hidden flex-shrink-0 shadow-lg">
+              <div className="relative w-14 h-14 rounded-md overflow-hidden flex-shrink-0 shadow-lg album-art">
                 <Image
                   src={albumImage}
                   alt={trackData.album?.name || "Album art"}
@@ -284,8 +273,8 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
             )}
 
             {/* Track Info */}
-            <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-white text-base truncate drop-shadow-lg flex items-center">
+            <div className="flex-1 min-w-0 track-info">
+              <h3 className="font-bold text-white text-base truncate drop-shadow-lg flex items-center track-title">
                 {!trackData.is_playing && (
                   <Pause className="h-4 w-4 mr-1 text-white/70" aria-label="Not playing" />
                 )}
@@ -293,21 +282,21 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
               </h3>
 
               {trackData.artists && (
-                <p className="text-gray-200 text-sm truncate drop-shadow-lg">
+                <p className="text-gray-200 text-sm truncate drop-shadow-lg track-artist">
                   {trackData.artists.map(artist => artist.name).join(", ")}
                 </p>
               )}
 
               {/* Progress Bar */}
               {trackData.duration_ms && (
-                <div className="mt-2 space-y-1">
+                <div className="mt-2 space-y-1 track-progress">
                   <div className="w-full bg-black/40 rounded-full h-1">
                     <div
                       className="bg-white h-1 rounded-full transition-all duration-300 shadow-sm"
                       style={{ width: `${Math.min(progress, 100)}%` }}
                     ></div>
                   </div>
-                  <div className="flex justify-between text-xs text-gray-300 drop-shadow-lg">
+                  <div className="flex justify-between text-xs text-gray-300 drop-shadow-lg track-duration">
                     <span>{formatDuration(currentProgress)}</span>
                     <span>{formatDuration(trackData.duration_ms)}</span>
                   </div>
@@ -318,7 +307,7 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
 
           {/* Credits Section for Stream */}
           {trackData.credits && (
-            <div className="mt-3 pt-2 border-t border-white/20">
+            <div className="mt-3 pt-2 border-t border-white/20 track-credits">
               <div className="text-xs text-white/80 drop-shadow-lg">
                 <div className="mb-1">Track ID: {trackData.credits.track_id}</div>
                 <div className="flex gap-1">
@@ -347,11 +336,11 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
 
           {/* Recent Tracks Section for Stream */}
           {trackData.recent_tracks && trackData.recent_tracks.length > 0 && (
-            <div className="mt-3 pt-2 border-t border-white/20">
+            <div className="mt-3 pt-2 border-t border-white/20 recent-tracks">
               <div className="text-xs text-white/90 drop-shadow-lg mb-2">Recently Played:</div>
               <div className="space-y-2">
                 {trackData.recent_tracks.slice(0, 3).map((track, index) => (
-                  <div key={index} className="flex items-center space-x-2 bg-black/30 rounded p-2">
+                  <div key={index} className="flex items-center space-x-2 bg-black/30 rounded p-2 recent-track-item">
                     {track.album.images[0] && (
                       <div className="relative w-6 h-6 rounded overflow-hidden flex-shrink-0">
                         <Image

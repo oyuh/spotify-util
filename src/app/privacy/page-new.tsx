@@ -36,7 +36,7 @@ export default function PrivacyPage() {
       description: "Your customization settings and theme preferences",
       icon: <Database className="w-5 h-5" />,
       required: true,
-      usage: "Stored to maintain your stream settings and custom CSS"
+      usage: "Stored to maintain your display settings and custom CSS"
     }
   ]
 

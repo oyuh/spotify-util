@@ -83,7 +83,7 @@ export default function SupportPage() {
       answer: "Yes! We only access the minimum required data (currently playing track) and provide privacy controls like custom URLs to hide your Spotify ID."
     },
     {
-      question: "How do I add custom CSS to my stream?",
+      question: "How do I add custom CSS to my display?",
       answer: "In your settings modal under the Styling tab, you'll find a Custom CSS section. Click 'View Docs' for examples and best practices."
     }
   ]

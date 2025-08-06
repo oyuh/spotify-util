@@ -223,7 +223,6 @@ export async function GET(
             theme: userPreferences.displaySettings.style,
             customCSS: userPreferences.displaySettings.customCSS,
             backgroundImage: userPreferences.displaySettings.backgroundImage,
-            streamerMode: userPreferences.displaySettings.streamerMode,
             position: userPreferences.displaySettings.position
           }
         }

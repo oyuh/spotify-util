@@ -55,7 +55,6 @@ interface UserPreferences {
     style: string
     customCSS?: string
     backgroundImage?: string
-    streamerMode: boolean
     position?: {
       x: number
       y: number
@@ -89,8 +88,7 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
     displaySettings: {
       style: 'minimal',
       customCSS: '',
-      backgroundImage: '',
-      streamerMode: false
+      backgroundImage: ''
     }
   })
   const [isLoading, setIsLoading] = useState(false)
@@ -621,14 +619,14 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
                   Themes & Styling
                 </CardTitle>
                 <CardDescription>
-                  Customize the appearance of your public display and streaming overlay
+                  Customize the appearance of your stream overlay for OBS and streaming software
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Display Theme Selection */}
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">Display Style</Label>
-                  <p className="text-xs text-muted-foreground">Style for public display pages</p>
+                  <p className="text-xs text-muted-foreground">Style for stream overlay pages</p>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {displayStyles.slice(0, 6).map((style) => (
                       <div
@@ -737,58 +735,117 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
 
                 <Separator />
 
-                {/* Streaming Mode Toggle */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="streaming-mode">Streaming Mode</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Optimized for OBS with transparent background
-                    </p>
+                {/* Custom CSS */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="custom-css">Custom CSS</Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open('/docs/custom-css', '_blank')}
+                      className="text-xs"
+                    >
+                      📖 View Docs
+                    </Button>
                   </div>
-                  <Switch
-                    id="streaming-mode"
-                    checked={preferences.displaySettings.streamerMode}
-                    onCheckedChange={(checked) =>
+                  <p className="text-xs text-muted-foreground">
+                    Add custom CSS to style your stream page. Use CSS selectors to customize colors, fonts, sizes, and more.
+                  </p>
+                  <textarea
+                    id="custom-css"
+                    placeholder={`/* 🎨 Neon Glow Theme - Working Example */
+.track-title {
+  color: #00ff88 !important;
+  text-shadow: 0 0 20px #00ff88 !important;
+  font-size: 2.5rem !important;
+}
+
+.stream-card {
+  background: rgba(0, 0, 0, 0.9) !important;
+  border: 2px solid #00ff88 !important;
+  box-shadow: 0 0 30px rgba(0, 255, 136, 0.3) !important;
+  border-radius: 12px !important;
+}
+
+/* 🌸 Cute Pink Theme */
+.track-artist {
+  color: #ff6b9d !important;
+  font-weight: 600 !important;
+}
+
+/* 💫 Hide unwanted elements */
+.track-duration { display: none !important; }
+.track-progress { display: none !important; }`}
+                    className="w-full h-32 px-3 py-2 text-sm rounded-md border border-input bg-background font-mono resize-y"
+                    value={preferences.displaySettings.customCSS || ''}
+                    onChange={(e) =>
                       setPreferences(prev => ({
                         ...prev,
                         displaySettings: {
                           ...prev.displaySettings,
-                          streamerMode: checked
+                          customCSS: e.target.value
                         }
                       }))
                     }
                   />
+                  <p className="text-xs text-amber-600">
+                    ⚠️ Advanced feature: Invalid CSS may break your stream page. Test changes before saving.
+                  </p>
                 </div>
 
                 <Separator />
 
-                {/* Custom Background Image - DISABLED FOR PRODUCTION */}
-                <div className="space-y-2 opacity-50">
-                  <Label htmlFor="background-image">Background Image</Label>
-                  <p className="text-xs text-amber-600 font-medium">
-                    🚧 Coming Soon - Background images are currently being improved and will be available in a future update.
+                {/* Custom Background Image - ENABLED FOR DEVELOPMENT */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="background-image">Background Image</Label>
+                    {imageTestResult !== 'idle' && (
+                      <div className="flex items-center gap-2">
+                        {imageTestResult === 'testing' && <Loader2 className="h-3 w-3 animate-spin" />}
+                        {imageTestResult === 'valid' && <CheckCircle className="h-3 w-3 text-green-500" />}
+                        {imageTestResult === 'invalid' && <XCircle className="h-3 w-3 text-red-500" />}
+                        <span className="text-xs text-muted-foreground">
+                          {imageTestResult === 'testing' && 'Testing...'}
+                          {imageTestResult === 'valid' && 'Valid'}
+                          {imageTestResult === 'invalid' && 'Invalid URL'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Add a custom background image to your display pages. Stream pages are always transparent for OBS overlays. Use a direct image URL (jpg, png, gif, etc.)
                   </p>
                   <div className="flex gap-2">
                     <Input
                       id="background-image"
                       type="url"
-                      placeholder="Feature coming soon..."
-                      disabled={true}
-                      value=""
-                      className="cursor-not-allowed"
+                      placeholder="https://i.imgur.com/example.jpg"
+                      value={preferences.displaySettings.backgroundImage || ''}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setPreferences(prev => ({
+                          ...prev,
+                          displaySettings: {
+                            ...prev.displaySettings,
+                            backgroundImage: value
+                          }
+                        }))
+                        setImageTestResult('idle')
+                      }}
+                      className="flex-1"
                     />
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={true}
-                      className="cursor-not-allowed"
+                      onClick={() => testBackgroundImage(preferences.displaySettings.backgroundImage || '')}
+                      disabled={!preferences.displaySettings.backgroundImage || imageTestResult === 'testing'}
                     >
-                      Coming Soon
+                      Test
                     </Button>
                   </div>
                   <div className="text-xs text-muted-foreground space-y-1">
-                    <p>Background images will support Imgur, Unsplash, Discord CDN, GitHub, and other trusted image hosts</p>
-                    <p>Note: This feature is being optimized for better performance and reliability</p>
+                    <p><strong>Supported:</strong> Imgur, Discord CDN, GitHub, Unsplash, and other direct image URLs</p>
+                    <p><strong>Note:</strong> Background images only work on display pages. Stream pages remain transparent for OBS overlays.</p>
                   </div>
                 </div>
 
@@ -805,7 +862,7 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
                         id="custom-css"
                         className="w-full h-32 p-3 text-sm font-mono border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                         placeholder="/* Add your custom CSS here */
-.track-display {
+.stream-container {
   color: #ffffff;
   background: rgba(0, 0, 0, 0.8);
   border-radius: 8px;

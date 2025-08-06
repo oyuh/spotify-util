@@ -321,7 +321,7 @@ export default function PrivacyPage() {
               <Button variant="outline" onClick={() => router.push('/support')}>
                 Contact Support
               </Button>
-              <Button variant="outline" onClick={() => window.open('mailto:privacy@spotify-util.com')}>
+              <Button variant="outline" onClick={() => router.push('/support')}>
                 Email Privacy Team
               </Button>
             </div>

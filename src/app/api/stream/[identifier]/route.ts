@@ -416,13 +416,75 @@ export async function GET(
     }
   } catch (error) {
     console.error('Error in stream API:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+    // Instead of returning an error, try to get recent tracks as fallback
+    try {
+      await client.connect()
+      const db = client.db('spotify-util')
+      const accounts = db.collection("accounts")
+
+      let account = await accounts.findOne({
+        providerAccountId: identifier,
+        provider: "spotify"
+      })
+
+      if (account) {
+        let accessToken = account.access_token
+
+        try {
+          const recentTracks = await getSpotifyData(accessToken, '/me/player/recently-played?limit=1')
+
+          if (recentTracks && recentTracks.items && recentTracks.items.length > 0) {
+            const lastTrack = recentTracks.items[0].track
+            console.log('Stream API fallback - Found recent track:', lastTrack.name)
+
+            // Get user preferences
+            let userPreferences = await getUserPreferences(identifier)
+            if (!userPreferences) {
+              userPreferences = await getUserBySpotifyId(identifier)
+            }
+            if (!userPreferences) {
+              userPreferences = await getUserPreferences(account.userId)
+            }
+
+            // Build response for recent track
+            const response: any = {
+              name: lastTrack.name,
+              is_playing: false
+            }
+
+            // Apply user preferences
+            if (userPreferences?.publicDisplaySettings) {
+              const settings = userPreferences.publicDisplaySettings
+              if (settings.showArtist) response.artists = lastTrack.artists
+              else response.artists = []
+              if (settings.showAlbum) response.album = lastTrack.album
+              else response.album = { name: '', images: [] }
+              if (settings.showDuration) response.duration_ms = lastTrack.duration_ms
+              if (settings.showCredits) response.external_urls = lastTrack.external_urls
+            } else {
+              response.artists = lastTrack.artists
+              response.album = lastTrack.album
+              response.duration_ms = lastTrack.duration_ms
+              response.external_urls = lastTrack.external_urls
+            }
+
+            return NextResponse.json(response)
+          }
+        } catch (recentError) {
+          console.error('Failed to fetch recent tracks in fallback:', recentError)
+        }
+      }
+    } catch (fallbackError) {
+      console.error('Fallback attempt failed:', fallbackError)
+    }
+
+    // If all else fails, return empty track data instead of error
     return NextResponse.json({
       name: '',
       artists: [],
       album: { name: '', images: [] },
-      is_playing: false,
-      error: `Failed to fetch track data: ${errorMessage}`
-    }, { status: 500 })
+      is_playing: false
+    })
   }
 }

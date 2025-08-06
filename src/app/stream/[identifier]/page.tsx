@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Music, Play, Pause } from "lucide-react"
 import { formatDuration, formatProgress, getMediumImage } from "@/lib/utils"
+import { ScrollingText } from "@/components/ScrollingText"
 import Image from "next/image"
 
 interface StreamerDisplayProps {
@@ -87,29 +88,13 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
 
         const data = await response.json()
 
-        // Make sure we have at least a track name for display
-        if (data && !data.name) {
-          // If the server returns an empty name, check for recent tracks
-          try {
-            const recentResponse = await fetch(`/api/spotify/recent-tracks`)
-            if (recentResponse.ok) {
-              const recentData = await recentResponse.json()
-              if (recentData.items && recentData.items.length > 0) {
-                // Use the most recent track
-                const recentTrack = recentData.items[0].track
-                data.name = recentTrack.name
-                data.artists = recentTrack.artists
-                data.album = recentTrack.album
-                data.duration_ms = recentTrack.duration_ms
-                data.is_playing = false
-              }
-            }
-          } catch (recentErr) {
-            console.error("Failed to fetch recent tracks as fallback:", recentErr)
-          }
-        }
-
-        setTrackData(data)
+        // The API now handles recent tracks fallback, so we just use the data as-is
+        setTrackData(data || {
+          name: '',
+          artists: [],
+          album: { name: '', images: [] },
+          is_playing: false
+        })
 
         // Update real progress tracking
         if (data.progress_ms) {
@@ -118,7 +103,14 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
           setLastUpdateTime(Date.now())
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred")
+        console.error("Stream fetch error:", err)
+        // For stream overlay, don't show errors - just set empty state
+        setTrackData({
+          name: '',
+          artists: [],
+          album: { name: '', images: [] },
+          is_playing: false
+        })
       } finally {
         if (isInitial) {
           setLoading(false)
@@ -172,39 +164,15 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-transparent flex items-center justify-center">
-        <div className="bg-black/20 backdrop-blur-sm p-4 rounded-lg">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
-        </div>
-      </div>
+      <div className="min-h-screen bg-transparent"></div>
     )
   }
 
-  if (error) {
+  if (!trackData || !trackData.name) {
+    // Don't show anything for stream overlay when no track is available
+    // This prevents showing error messages on the stream
     return (
-      <div className="min-h-screen bg-transparent flex items-center justify-center">
-        <Card className="bg-black/80 backdrop-blur-sm border-red-500/50 p-4 max-w-xs">
-          <div className="text-center text-red-400">
-            <Music className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="font-medium">Error fetching track data</p>
-            <p className="text-sm opacity-75 mt-1">{error}</p>
-          </div>
-        </Card>
-      </div>
-    )
-  }
-
-  if (!trackData) {
-    return (
-      <div className="min-h-screen bg-transparent flex items-center justify-center">
-        <Card className="bg-black/80 backdrop-blur-sm border-primary/30 p-4 max-w-xs">
-          <div className="text-center text-white">
-            <Music className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="font-medium">No track information available</p>
-            <p className="text-sm opacity-75 mt-1">Check your Spotify connection</p>
-          </div>
-        </Card>
-      </div>
+      <div className="min-h-screen bg-transparent"></div>
     )
   }
 
@@ -274,17 +242,25 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
 
             {/* Track Info */}
             <div className="flex-1 min-w-0 track-info">
-              <h3 className="font-bold text-white text-base truncate drop-shadow-lg flex items-center track-title">
+              <div className="font-bold text-white text-base drop-shadow-lg flex items-center track-title">
                 {!trackData.is_playing && (
-                  <Pause className="h-4 w-4 mr-1 text-white/70" aria-label="Not playing" />
+                  <Pause className="h-4 w-4 mr-1 text-white/70 flex-shrink-0" aria-label="Not playing" />
                 )}
-                {trackData.name}
-              </h3>
+                <ScrollingText
+                  text={trackData.name}
+                  className="flex-1"
+                  speed={40}
+                  pauseDuration={2000}
+                />
+              </div>
 
               {trackData.artists && (
-                <p className="text-gray-200 text-sm truncate drop-shadow-lg track-artist">
-                  {trackData.artists.map(artist => artist.name).join(", ")}
-                </p>
+                <ScrollingText
+                  text={trackData.artists.map(artist => artist.name).join(", ")}
+                  className="text-gray-200 text-sm drop-shadow-lg track-artist"
+                  speed={35}
+                  pauseDuration={2000}
+                />
               )}
 
               {/* Progress Bar */}
@@ -352,10 +328,18 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-white/90 truncate drop-shadow-lg">{track.name}</p>
-                      <p className="text-xs text-white/70 truncate drop-shadow-lg">
-                        {track.artists.map(artist => artist.name).join(', ')}
-                      </p>
+                      <ScrollingText
+                        text={track.name}
+                        className="text-xs text-white/90 drop-shadow-lg"
+                        speed={25}
+                        pauseDuration={1500}
+                      />
+                      <ScrollingText
+                        text={track.artists.map(artist => artist.name).join(', ')}
+                        className="text-xs text-white/70 drop-shadow-lg"
+                        speed={25}
+                        pauseDuration={1500}
+                      />
                     </div>
                   </div>
                 ))}

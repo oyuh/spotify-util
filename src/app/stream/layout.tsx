@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react'
 import { DisplayStyleProvider } from '@/contexts/display-style-context'
+import { AnalyticsWrapper } from '@/components/AnalyticsWrapper'
 
 export default function StreamLayout({
   children,
@@ -10,6 +11,7 @@ export default function StreamLayout({
 }) {
   return (
     <DisplayStyleProvider>
+      <AnalyticsWrapper />
       <div className="bg-transparent min-h-screen overflow-hidden w-full h-full fixed inset-0" style={{
         background: 'transparent',
         position: 'fixed',

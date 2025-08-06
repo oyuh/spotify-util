@@ -4,10 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import Navigation from "@/components/Navigation";
 import { Toaster } from "@/components/ui/sonner";
-
-// Import analytics components
-import { Analytics } from '@vercel/analytics/next';
-import { SpeedInsights } from '@vercel/speed-insights/next';
+import { AnalyticsWrapper } from "@/components/AnalyticsWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,14 +46,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} ${jetBrainsMono.variable} antialiased`}
       >
         <Providers>
+          <AnalyticsWrapper />
           <Navigation />
           <main>
             {children}
           </main>
           <Toaster />
         </Providers>
-        <Analytics />
-        <SpeedInsights />
       </body>
     </html>
   );

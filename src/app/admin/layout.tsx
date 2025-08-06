@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import { AnalyticsWrapper } from '@/components/AnalyticsWrapper'
 
 export const metadata: Metadata = {
   title: 'Admin Panel - Spotify Util',
@@ -12,6 +13,7 @@ export default function AdminLayout({
 }) {
   return (
     <div className="min-h-screen bg-background">
+      <AnalyticsWrapper />
       {children}
     </div>
   )

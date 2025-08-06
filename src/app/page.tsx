@@ -424,7 +424,7 @@ function Home() {
                 <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                 <div className="flex-1 text-center text-gray-400 text-sm">
-                  musicutil.online/display/yourname
+                  jamlog.live/display/yourname
                 </div>
               </div>
               <div className="p-8 sm:p-12">
@@ -479,7 +479,7 @@ function Home() {
           <div className="container mx-auto px-4 text-center">
             <div className="flex items-center justify-center mb-6">
               <Music className="w-8 h-8 text-green-400 mr-2" />
-              <span className="text-2xl font-bold text-white">SpotifyUtil</span>
+              <span className="text-2xl font-bold text-white">JamLog</span>
             </div>
             <p className="text-gray-400 mb-4">
               Made by <a href="https://lawsonhart.me" className="text-green-400 hover:underline">Lawson Hart</a> with ❤️

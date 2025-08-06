@@ -170,7 +170,7 @@ function ThemePreview({ style, isSelected }: { style: DisplayStyle; isSelected: 
             {/* Powered by - at the bottom */}
             <div className="mt-6 pt-4 border-t text-center">
               <p className={cn("text-xs", style.styles.secondaryText)}>
-                Powered by <span className="font-medium">SpotifyUtil</span>
+                Powered by <span className="font-medium">JamLog</span>
               </p>
             </div>
           </div>

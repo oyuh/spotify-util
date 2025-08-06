@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
     response_type: 'code',
     client_id: process.env.SPOTIFY_CLIENT_ID!,
     scope: 'user-read-email user-read-private',
-    redirect_uri: 'https://musicutil.online/api/auth/callback/spotify',
+    redirect_uri: 'https://jamlog.live/api/auth/callback/spotify',
     state: 'test-state-123'
   })}`
 
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     config: {
       hasClientId: !!process.env.SPOTIFY_CLIENT_ID,
       hasClientSecret: !!process.env.SPOTIFY_CLIENT_SECRET,
-      redirectUri: 'https://musicutil.online/api/auth/callback/spotify',
+      redirectUri: 'https://jamlog.live/api/auth/callback/spotify',
     },
     testAuthUrl: spotifyAuthUrl,
     instructions: [

@@ -33,7 +33,7 @@ export default function SupportPage() {
   const supportOptions = [
     {
       title: "General Questions",
-      description: "Get help with using SpotifyUtil features and functionality",
+      description: "Get help with using JamLog features and functionality",
       icon: <HelpCircle className="w-5 h-5" />,
       badge: "Popular",
       badgeVariant: "default" as const,
@@ -172,7 +172,7 @@ export default function SupportPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold">Support Center</h1>
-              <p className="text-muted-foreground">Get help with SpotifyUtil features and functionality</p>
+              <p className="text-muted-foreground">Get help with JamLog features and functionality</p>
             </div>
           </div>
 
@@ -230,7 +230,7 @@ export default function SupportPage() {
               Frequently Asked Questions
             </CardTitle>
             <CardDescription>
-              Quick answers to common questions about SpotifyUtil
+              Quick answers to common questions about JamLog
             </CardDescription>
           </CardHeader>
           <CardContent>

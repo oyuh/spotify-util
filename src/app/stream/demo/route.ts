@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Theme Demo - ${theme.name} | SpotifyUtil</title>
+    <title>Theme Demo - ${theme.name} | JamLog</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,${encodeURIComponent(`
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
     <link rel="manifest" href="/site.webmanifest">
 
     <!-- Meta tags -->
-    <meta name="description" content="Live preview of ${theme.name} theme for SpotifyUtil display">
+    <meta name="description" content="Live preview of ${theme.name} theme for JamLog display">
     <meta name="theme-color" content="#000000">
 
     <!-- External resources -->
@@ -258,7 +258,7 @@ export async function GET(request: NextRequest) {
                         ${!demoData.recentTracks || demoData.recentTracks.length === 0 ? `
                         <div class="mt-6 pt-4 border-t text-center">
                             <p class="text-xs ${theme.styles.secondaryText}">
-                                Powered by <span class="font-medium">SpotifyUtil</span>
+                                Powered by <span class="font-medium">JamLog</span>
                             </p>
                         </div>
                         ` : ''}
@@ -296,7 +296,7 @@ export async function GET(request: NextRequest) {
                         <!-- Powered by - in sidebar when recent tracks exist -->
                         <div class="mt-4 pt-4 border-t text-center">
                             <p class="text-xs ${theme.styles.secondaryText}">
-                                Powered by <span class="font-medium">SpotifyUtil</span>
+                                Powered by <span class="font-medium">JamLog</span>
                             </p>
                         </div>
                     </div>

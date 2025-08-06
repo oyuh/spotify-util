@@ -27,7 +27,7 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SpotifyUtil",
+  title: "JamLog",
   description: "Create beautiful, customizable displays of your Spotify activity. Perfect for streamers, music lovers, and anyone who wants to share their musical journey.",
   icons: [
     { rel: 'icon', url: '/spotify-favicon.svg', type: 'image/svg+xml' },

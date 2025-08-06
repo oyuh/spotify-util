@@ -110,7 +110,7 @@ export default function PrivacyPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm">
-              SpotifyUtil is designed with privacy at its core. We collect only the minimum data necessary to provide
+              JamLog is designed with privacy at its core. We collect only the minimum data necessary to provide
               our service and give you complete control over what information is displayed publicly.
             </p>
 

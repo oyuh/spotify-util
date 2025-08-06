@@ -67,7 +67,7 @@ export default function LeaderboardPage() {
         <div className="mb-8 text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Trophy className="h-8 w-8 text-yellow-500" />
-            <h1 className="text-4xl font-bold text-foreground">SpotifyUtil Leaderboard</h1>
+            <h1 className="text-4xl font-bold text-foreground">JamLog Leaderboard</h1>
             <Trophy className="h-8 w-8 text-yellow-500" />
           </div>
           <p className="text-muted-foreground">Most popular public display pages</p>

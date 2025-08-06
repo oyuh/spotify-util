@@ -69,7 +69,7 @@ export default function PublicDisplay() {
   const [lastRealProgress, setLastRealProgress] = useState(0)
   const [lastUpdateTime, setLastUpdateTime] = useState(Date.now())
   const [userStyle, setUserStyle] = useState<string>('minimal')
-  const [displayName, setDisplayName] = useState<string>('SpotifyUtil')
+  const [displayName, setDisplayName] = useState<string>('JamLog')
   const [hasBackgroundImage, setHasBackgroundImage] = useState<boolean>(false)
   const [preferencesLoaded, setPreferencesLoaded] = useState(false)
   const [autoRefreshTriggered, setAutoRefreshTriggered] = useState(false)
@@ -509,7 +509,7 @@ export default function PublicDisplay() {
               {(!track.recent_tracks || track.recent_tracks.length === 0) && (
                 <div className="mt-6 pt-4 border-t text-center">
                   <p className={`text-xs ${styleClasses.secondaryText}`}>
-                    Powered by <span className="font-medium">SpotifyUtil</span>
+                    Powered by <span className="font-medium">JamLog</span>
                   </p>
                 </div>
               )}
@@ -565,7 +565,7 @@ export default function PublicDisplay() {
                 {/* Powered by - in sidebar when recent tracks exist */}
                 <div className="mt-4 pt-4 border-t text-center">
                   <p className={`text-xs ${styleClasses.secondaryText}`}>
-                    Powered by <span className="font-medium">SpotifyUtil</span>
+                    Powered by <span className="font-medium">JamLog</span>
                   </p>
                 </div>
               </CardContent>

@@ -19,7 +19,7 @@ export default function Loading() {
         {/* Loading text */}
         <h2 className="text-2xl font-bold mb-4">
           <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
-            Loading SpotifyUtil
+            Loading JamLog
           </span>
         </h2>
 

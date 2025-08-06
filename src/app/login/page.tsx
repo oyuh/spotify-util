@@ -36,7 +36,7 @@ export default function LoginPage() {
               </div>
             </div>
             <div>
-              <CardTitle className="text-2xl font-bold">Welcome to SpotifyUtil</CardTitle>
+              <CardTitle className="text-2xl font-bold">Welcome to JamLog</CardTitle>
               <CardDescription className="text-base mt-2">
                 Connect your Spotify account to start sharing your music
               </CardDescription>

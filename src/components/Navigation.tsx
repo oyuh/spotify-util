@@ -67,7 +67,7 @@ export default function Navigation() {
           <div className="px-4 flex h-14 items-center">
             <div className="mr-4 flex">
               <Music className="mr-2 h-5 w-5 text-primary" />
-              <span className="font-bold">SpotifyUtil</span>
+              <span className="font-bold">JamLog</span>
             </div>
             <div className="w-20 h-8 bg-muted/50 animate-pulse rounded ml-6" />
           </div>
@@ -101,7 +101,7 @@ export default function Navigation() {
               isDisplayPage
                 ? 'from-white to-gray-300'
                 : 'from-foreground to-foreground/80'
-            }`}>SpotifyUtil</span>
+            }`}>JamLog</span>
           </Link>
         </div>
 

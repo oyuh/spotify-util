@@ -848,39 +848,6 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
                     <p><strong>Note:</strong> Background images only work on display pages. Stream pages remain transparent for OBS overlays.</p>
                   </div>
                 </div>
-
-                {/* Custom CSS */}
-                {isFullVersion && (
-                  <>
-                    <Separator />
-                    <div className="space-y-2">
-                      <Label htmlFor="custom-css">Custom CSS</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Add custom styles to override theme defaults (advanced users only)
-                      </p>
-                      <textarea
-                        id="custom-css"
-                        className="w-full h-32 p-3 text-sm font-mono border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                        placeholder="/* Add your custom CSS here */
-.stream-container {
-  color: #ffffff;
-  background: rgba(0, 0, 0, 0.8);
-  border-radius: 8px;
-}"
-                        value={preferences.displaySettings.customCSS || ''}
-                        onChange={(e) =>
-                          setPreferences(prev => ({
-                            ...prev,
-                            displaySettings: {
-                              ...prev.displaySettings,
-                              customCSS: e.target.value
-                            }
-                          }))
-                        }
-                      />
-                    </div>
-                  </>
-                )}
               </CardContent>
             </Card>
           </TabsContent>

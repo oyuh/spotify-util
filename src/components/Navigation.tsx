@@ -118,7 +118,7 @@ export default function Navigation() {
                 </Button>
               </Link>
 
-              <Link href="/leaderboard" className="hidden sm:block">
+              {/* <Link href="/leaderboard" className="hidden sm:block">
                 <Button variant="ghost" size="sm" className={`font-medium transition-colors ${
                   isDisplayPage
                     ? 'text-white hover:bg-gray-800'
@@ -126,7 +126,7 @@ export default function Navigation() {
                 }`}>
                   Leaderboard
                 </Button>
-              </Link>
+              </Link> */}
 
               <AppThemeSelector>
                 <Button variant="ghost" size="sm" className={`transition-colors ${

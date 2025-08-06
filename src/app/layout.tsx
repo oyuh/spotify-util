@@ -49,14 +49,14 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} ${jetBrainsMono.variable} antialiased`}
       >
         <Providers>
-          <Analytics />
-          <SpeedInsights />
           <Navigation />
           <main>
             {children}
           </main>
           <Toaster />
         </Providers>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

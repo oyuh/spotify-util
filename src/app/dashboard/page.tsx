@@ -64,6 +64,11 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
+  const [commitInfo, setCommitInfo] = useState<{
+    hash: string
+    date: string
+    message: string
+  } | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -75,7 +80,26 @@ export default function Dashboard() {
       fetchUserProfile()
       fetchUserPreferences()
     }
+
+    // Fetch commit info regardless of auth status
+    fetchCommitInfo()
   }, [status, session, router])
+
+  const fetchCommitInfo = async () => {
+    try {
+      const response = await fetch('https://api.github.com/repos/oyuh/spotify-util/commits?per_page=1')
+      if (response.ok) {
+        const [latestCommit] = await response.json()
+        setCommitInfo({
+          hash: latestCommit.sha.substring(0, 7), // Short hash
+          date: new Date(latestCommit.commit.committer.date).toLocaleString(),
+          message: latestCommit.commit.message
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch commit info:', error)
+    }
+  }
 
   const fetchUserProfile = async () => {
     try {
@@ -184,9 +208,21 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background pt-24">
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-2">Manage your Spotify display settings and view your music activity</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground mt-2">Manage your Spotify display settings and view your music activity</p>
+          </div>
+          {commitInfo && (
+            <div className="text-right">
+              <div className="text-sm text-muted-foreground">
+                Latest: <code className="bg-muted px-2 py-1 rounded text-xs font-mono">{commitInfo.hash}</code>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {commitInfo.date}
+              </div>
+            </div>
+          )}
         </div>
 
         <Tabs defaultValue="music" className="space-y-6">
@@ -392,6 +428,7 @@ export default function Dashboard() {
                       <li>Check ✅ <strong>"Shutdown source when not visible"</strong></li>
                       <li>Check ✅ <strong>"Refresh browser when scene becomes active"</strong></li>
                       <li>Click OK and position the overlay on your stream</li>
+                      <li>Hint: If you hold alt+drag, you can crop the overlay</li>
                     </ol>
                   </div>
                 </div>
@@ -480,6 +517,11 @@ export default function Dashboard() {
   color: #00ff41;
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+/* Show recent tracks (hidden by default) */
+.recent-tracks {
+  display: block !important;
 }
 
 .album-art {

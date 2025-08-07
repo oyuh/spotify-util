@@ -46,6 +46,14 @@ interface TrackData {
     external_urls: { spotify: string }
     played_at: string
   }>
+  preferences?: {
+    displaySettings?: {
+      style: string
+      customCSS?: string
+      backgroundImage?: string
+      position?: { x: number; y: number }
+    }
+  }
   settings?: {
     theme: string
     customCSS?: string
@@ -80,13 +88,35 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
         }
         setError(null)
 
-        const response = await fetch(`/api/stream/${identifier}`)
+        // Use the same logic as display page - try both endpoints
+        console.log('Fetching stream data for identifier:', identifier)
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch track data")
+        let response: Response
+        let data: any = null
+
+        // First try as a custom slug
+        console.log('Trying slug endpoint:', `/api/public/display/${identifier}`)
+        response = await fetch(`/api/public/display/${identifier}`)
+
+        if (response.ok) {
+          data = await response.json()
+          console.log('✅ Slug endpoint worked!')
+        } else if (response.status === 404) {
+          // If slug failed with 404, try as Spotify ID
+          console.log('Slug failed, trying Spotify ID endpoint:', `/api/display/${identifier}`)
+          response = await fetch(`/api/display/${identifier}`)
+
+          if (response.ok) {
+            data = await response.json()
+            console.log('✅ Spotify ID endpoint worked!')
+          }
         }
 
-        const data = await response.json()
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('Failed to fetch track data:', response.status, errorText)
+          throw new Error(`Failed to fetch track data: ${response.status} - ${errorText}`)
+        }
 
         // The API now handles recent tracks fallback, so we just use the data as-is
         setTrackData(data || {
@@ -147,9 +177,9 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
 
   // Custom CSS injection for stream page styling only
   useEffect(() => {
-    if (trackData?.settings?.customCSS) {
+    if (trackData?.preferences?.displaySettings?.customCSS) {
       const style = document.createElement("style")
-      style.textContent = trackData.settings.customCSS
+      style.textContent = trackData.preferences.displaySettings.customCSS
       style.id = "stream-custom-css"
       document.head.appendChild(style)
 
@@ -160,7 +190,7 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
         }
       }
     }
-  }, [trackData?.settings?.customCSS])
+  }, [trackData?.preferences?.displaySettings?.customCSS])
 
   if (loading) {
     return (
@@ -186,11 +216,11 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
     : 0
 
   // Position styling for streamer overlay
-  const positionStyle = trackData.settings?.position
+  const positionStyle = trackData?.preferences?.displaySettings?.position || trackData?.settings?.position
     ? {
         position: "fixed" as const,
-        top: `${trackData.settings.position.y}px`,
-        left: `${trackData.settings.position.x}px`,
+        top: `${(trackData?.preferences?.displaySettings?.position || trackData?.settings?.position)?.y}px`,
+        left: `${(trackData?.preferences?.displaySettings?.position || trackData?.settings?.position)?.x}px`,
       }
     : {}
 
@@ -310,9 +340,9 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
             </div>
           )}
 
-          {/* Recent Tracks Section for Stream */}
+          {/* Recent Tracks Section for Stream - Hidden by default, use CSS to show */}
           {trackData.recent_tracks && trackData.recent_tracks.length > 0 && (
-            <div className="mt-3 pt-2 border-t border-white/20 recent-tracks">
+            <div className="mt-3 pt-2 border-t border-white/20 recent-tracks hidden">
               <div className="text-xs text-white/90 drop-shadow-lg mb-2">Recently Played:</div>
               <div className="space-y-2">
                 {trackData.recent_tracks.slice(0, 3).map((track, index) => (

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { MongoClient } from 'mongodb'
 import { getUserPreferences, getUserBySpotifyId } from '@/lib/db'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 
 const client = new MongoClient(process.env.MONGODB_URI!)
 
@@ -57,7 +55,7 @@ export async function GET(
 
   try {
     await client.connect()
-    const db = client.db('spotify-util')
+    const db = client.db('test')
 
     // Use the same logic as display API - look for account by providerAccountId
     const accounts = db.collection("accounts")
@@ -67,6 +65,44 @@ export async function GET(
       providerAccountId: identifier,
       provider: "spotify"
     })
+
+    // If not found, try looking by userId
+    if (!account) {
+      console.log('Not found by providerAccountId, trying userId...')
+      account = await accounts.findOne({
+        userId: identifier,
+        provider: "spotify"
+      })
+    }
+
+    // If we found an account, check privacy settings (same as display API)
+    if (account) {
+      console.log('Checking privacy settings for userId:', account.userId)
+
+      // Look up preferences using the proper method
+      let userPrefs = await getUserPreferences(identifier)
+      if (!userPrefs) {
+        userPrefs = await getUserBySpotifyId(identifier)
+      }
+      if (!userPrefs) {
+        userPrefs = await getUserPreferences(account.userId.toString())
+      }
+
+      console.log('User preferences found:', userPrefs ? 'Yes' : 'No')
+      console.log('Privacy settings:', JSON.stringify(userPrefs?.privacySettings, null, 2))
+
+      // If user has privacy enabled (isPublic = false), they can only be accessed via slug
+      if (userPrefs && userPrefs.privacySettings && userPrefs.privacySettings.isPublic === false) {
+        console.log('🔒 PRIVACY CHECK: User has privacy enabled, access denied via Spotify ID')
+        console.log('User should use slug instead:', userPrefs.privacySettings.customSlug)
+        return NextResponse.json({ error: "Not found" }, { status: 404 })
+      } else {
+        console.log('✅ PRIVACY CHECK: User is public or no preferences found, allowing access')
+        if (userPrefs?.privacySettings) {
+          console.log('Privacy settings isPublic value:', userPrefs.privacySettings.isPublic)
+        }
+      }
+    }
 
     if (!account) {
       console.log('Stream API - Account not found by providerAccountId')
@@ -420,7 +456,7 @@ export async function GET(
     // Instead of returning an error, try to get recent tracks as fallback
     try {
       await client.connect()
-      const db = client.db('spotify-util')
+      const db = client.db('test')
       const accounts = db.collection("accounts")
 
       let account = await accounts.findOne({

@@ -1,16 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getUserBySlug } from "@/lib/db"
+import { getUserBySlug, getUserPreferences, getUserBySpotifyId } from "@/lib/db"
 import { MongoClient } from "mongodb"
 
 const client = new MongoClient(process.env.MONGODB_URI!)
-
-interface UserSession {
-  userId: string
-  spotifyId: string
-  access_token: string
-  refresh_token: string
-  expires_at: number
-}
 
 async function refreshSpotifyToken(refreshToken: string) {
   const response = await fetch('https://accounts.spotify.com/api/token', {
@@ -62,22 +54,32 @@ export async function GET(
     const userPrefs = await getUserBySlug(slug)
 
     if (!userPrefs) {
+      console.log('Public Stream API - User not found for slug:', slug)
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 
-    // Note: We don't check isPublic here because slug access should work regardless
-    // The privacy setting controls whether the regular Spotify ID works, not the slug
+    console.log('Public Stream API - Found user:', userPrefs.userId)
 
-    console.log('Public Stream API - Found public user:', userPrefs.userId)
+    // Connect to database
+    await client.connect()
 
-    // Get user's access token from accounts collection
+    // Get user's access token from accounts collection (same logic as display API)
     const db = client.db("test")
     const accounts = db.collection("accounts")
 
-    const account = await accounts.findOne({
+    // Try multiple ways to find the account (same as display API)
+    let account = await accounts.findOne({
       userId: userPrefs.userId,
       provider: "spotify"
     })
+
+    if (!account) {
+      console.log('Trying providerAccountId for userId:', userPrefs.userId)
+      account = await accounts.findOne({
+        providerAccountId: userPrefs.userId,
+        provider: "spotify"
+      })
+    }
 
     if (!account) {
       console.log('Public Stream API - No account found for user')
@@ -107,79 +109,130 @@ export async function GET(
       )
     }
 
-    // Get current track
-    const currentTrack = await getSpotifyData(accessToken, '/me/player/currently-playing')
+    // Get current track (same as display API logic)
+    let currentTrack = await getSpotifyData(accessToken, '/me/player/currently-playing')
     console.log('Public Stream API - Current track data received')
 
     if (!currentTrack || !currentTrack.item) {
+      console.log('Public Stream API - No current track, attempting to fetch recent tracks as fallback')
+
+      try {
+        const recentTracks = await getSpotifyData(accessToken, '/me/player/recently-played?limit=1')
+
+        if (recentTracks && recentTracks.items && recentTracks.items.length > 0) {
+          const lastTrack = recentTracks.items[0].track
+          console.log('Public Stream API - Found recent track:', lastTrack.name)
+
+          // Build response based on user preferences (same as display API)
+          const response: any = {
+            name: lastTrack.name,
+            is_playing: false // Recent track is not currently playing
+          }
+
+          // Apply user preferences for data visibility
+          if (userPrefs?.publicDisplaySettings) {
+            const settings = userPrefs.publicDisplaySettings
+
+            if (settings.showArtist) {
+              response.artists = lastTrack.artists
+            } else {
+              response.artists = []
+            }
+
+            if (settings.showAlbum) {
+              response.album = lastTrack.album
+            } else {
+              response.album = { name: '', images: [] }
+            }
+
+            if (settings.showDuration) {
+              response.duration_ms = lastTrack.duration_ms
+            }
+
+            if (settings.showCredits) {
+              response.external_urls = lastTrack.external_urls
+            }
+          } else {
+            // Default behavior if no preferences found
+            response.artists = lastTrack.artists
+            response.album = lastTrack.album
+            response.duration_ms = lastTrack.duration_ms
+            response.external_urls = lastTrack.external_urls
+          }
+
+          return NextResponse.json(response)
+        }
+      } catch (recentTracksError) {
+        console.error('Public Stream API - Failed to fetch recent tracks:', recentTracksError)
+      }
+
       return NextResponse.json({
-        name: null,
-        artists: null,
-        album: null,
-        duration_ms: null,
-        is_playing: false,
-        progress_ms: null,
-        external_urls: null,
-        settings: userPrefs.publicDisplaySettings || {}
+        name: '',
+        artists: [],
+        album: { name: '', images: [] },
+        is_playing: false
       })
     }
 
-    let recentTracks = []
-
-    // Get recent tracks if enabled in settings
-    if (userPrefs.publicDisplaySettings?.showRecentTracks) {
-      const limit = userPrefs.publicDisplaySettings?.numberOfRecentTracks || 5
-      console.log('Public Stream API - Fetching recent tracks with limit:', limit)
-
-      try {
-        const recentData = await getSpotifyData(accessToken, `/me/player/recently-played?limit=${limit}`)
-        if (recentData?.items) {
-          recentTracks = recentData.items.map((item: any) => ({
-            name: item.track.name,
-            artists: item.track.artists,
-            album: {
-              name: item.track.album.name,
-              images: item.track.album.images
-            },
-            duration_ms: item.track.duration_ms,
-            external_urls: item.track.external_urls,
-            played_at: item.played_at
-          }))
-        }
-      } catch (error) {
-        console.error('Public Stream API - Error fetching recent tracks:', error)
-      }
-    }
-
-    // Enhanced track data for streaming
-    const enhancedTrack = {
+    // Build response for current track (same as display API)
+    const response: any = {
       name: currentTrack.item.name,
-      artists: currentTrack.item.artists,
-      album: currentTrack.item.album,
-      duration_ms: currentTrack.item.duration_ms,
-      is_playing: currentTrack.is_playing,
-      progress_ms: currentTrack.progress_ms,
-      external_urls: currentTrack.item.external_urls,
-      settings: userPrefs.publicDisplaySettings || {},
-      recent_tracks: recentTracks,
-      // Add credits information for enhanced display
-      credits: userPrefs.publicDisplaySettings?.showCredits ? {
-        spotify_url: currentTrack.item.external_urls.spotify,
-        artists: currentTrack.item.artists,
-        album: {
-          name: currentTrack.item.album.name,
-          spotify_url: currentTrack.item.album.external_urls?.spotify
-        },
-        track_id: currentTrack.item.id,
-        uri: currentTrack.item.uri
-      } : undefined
+      is_playing: currentTrack.is_playing
     }
 
-    console.log('Public Stream API - Returning enhanced track data')
-    return NextResponse.json(enhancedTrack)
+    // Apply user preferences for data visibility
+    if (userPrefs?.publicDisplaySettings) {
+      const settings = userPrefs.publicDisplaySettings
+
+      if (settings.showArtist) {
+        response.artists = currentTrack.item.artists
+      } else {
+        response.artists = []
+      }
+
+      if (settings.showAlbum) {
+        response.album = currentTrack.item.album
+      } else {
+        response.album = { name: '', images: [] }
+      }
+
+      if (settings.showDuration) {
+        response.duration_ms = currentTrack.item.duration_ms
+      }
+
+      if (settings.showProgress) {
+        response.progress_ms = currentTrack.progress_ms
+      }
+
+      if (settings.showCredits) {
+        response.external_urls = currentTrack.item.external_urls
+      }
+
+      // Include display settings for styling (for stream compatibility)
+      if (userPrefs.displaySettings) {
+        response.settings = {
+          theme: userPrefs.displaySettings.style,
+          customCSS: userPrefs.displaySettings.customCSS,
+          backgroundImage: userPrefs.displaySettings.backgroundImage,
+          position: userPrefs.displaySettings.position
+        }
+      }
+    } else {
+      // Default behavior if no preferences found
+      response.artists = currentTrack.item.artists
+      response.album = currentTrack.item.album
+      response.duration_ms = currentTrack.item.duration_ms
+      response.progress_ms = currentTrack.progress_ms
+      response.external_urls = currentTrack.item.external_urls
+    }
+
+    console.log('Public Stream API - Returning track data')
+    return NextResponse.json(response)
 
   } catch (error) {
     console.error('Public Stream API - Error:', error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  } finally {
+    await client.close()
   }
 }

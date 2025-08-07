@@ -18,70 +18,137 @@ export default function CustomCSSDocsPage() {
   const examples = [
     {
       title: "Make Track Title Larger",
-      description: "Increase the size of the track title",
+      description: "Increase the size and styling of the track title",
       css: `.track-title {
-  font-size: 2rem !important;
+  font-size: 1.5rem !important;
   font-weight: bold !important;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8) !important;
 }`
     },
     {
-      title: "Change Card Background",
-      description: "Make the card background darker and more transparent",
-      css: `.stream-card {
+      title: "Customize Stream Container",
+      description: "Style the main container with background and positioning",
+      css: `.stream-container {
   background: rgba(0, 0, 0, 0.8) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}`
-    },
-    {
-      title: "Customize Text Colors",
-      description: "Change text colors for better contrast",
-      css: `.track-title {
-  color: #ffffff !important;
-}
-
-.track-artist {
-  color: #cccccc !important;
-}
-
-.track-album {
-  color: #999999 !important;
+  border-radius: 15px !important;
+  padding: 1rem !important;
+  backdrop-filter: blur(10px) !important;
+  max-width: 400px !important;
 }`
     },
     {
       title: "Hide Elements",
       description: "Hide specific elements you don't want to show",
-      css: `.track-duration {
+      css: `/* Hide progress bar */
+.track-progress {
   display: none !important;
 }
 
-.track-progress {
+/* Hide credits section */
+.track-credits {
+  display: none !important;
+}
+
+/* Hide recent tracks (they are hidden by default) */
+.recent-tracks {
   display: none !important;
 }`
     },
     {
-      title: "Custom Layout",
-      description: "Change the overall layout and spacing",
+      title: "Show Recent Tracks",
+      description: "Enable the recent tracks section (hidden by default)",
+      css: `/* Show recent tracks section */
+.recent-tracks {
+  display: block !important;
+}
+
+/* Style the recent tracks */
+.recent-tracks {
+  background: rgba(0, 0, 0, 0.5) !important;
+  border-radius: 8px !important;
+  padding: 0.75rem !important;
+}
+
+.recent-track-item {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 6px !important;
+}`
+    },
+    {
+      title: "Colorful Text Theme",
+      description: "Create a colorful theme for better visibility",
+      css: `.track-title {
+  color: #00ff88 !important;
+  font-weight: bold !important;
+}
+
+.track-artist {
+  color: #66b3ff !important;
+}
+
+.track-duration {
+  color: #ffcc00 !important;
+}`
+    },
+    {
+      title: "Album Art Styling",
+      description: "Customize the album artwork appearance",
+      css: `.album-art {
+  border-radius: 50% !important;
+  border: 3px solid #ffffff !important;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.3) !important;
+}`
+    },
+    {
+      title: "Minimal Stream Overlay",
+      description: "Create a clean, minimal look",
       css: `.stream-container {
-  padding: 2rem !important;
-  max-width: 600px !important;
-  margin: 0 auto !important;
+  background: transparent !important;
+  max-width: 300px !important;
+}
+
+.stream-card {
+  background: rgba(0, 0, 0, 0.6) !important;
+  border-radius: 10px !important;
+  padding: 0.75rem !important;
 }
 
 .track-info {
   text-align: center !important;
-  margin-bottom: 1rem !important;
+}
+
+.album-art {
+  margin: 0 auto !important;
 }`
     },
     {
-      title: "Add Shadows and Effects",
-      description: "Add visual effects like shadows and blur",
-      css: `.stream-card {
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
-  backdrop-filter: blur(10px) !important;
+      title: "Gaming Stream Style",
+      description: "Bold styling perfect for gaming streams with recent tracks",
+      css: `.stream-container {
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4) !important;
+  border-radius: 20px !important;
+  padding: 1.5rem !important;
+  border: 2px solid #ffffff !important;
 }
 
 .track-title {
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8) !important;
+  color: #ffffff !important;
+  font-size: 1.25rem !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+}
+
+.track-artist {
+  color: #f0f0f0 !important;
+  font-weight: bold !important;
+}
+
+/* Show recent tracks */
+.recent-tracks {
+  display: block !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-radius: 15px !important;
+  padding: 1rem !important;
 }`
     }
   ]
@@ -89,14 +156,14 @@ export default function CustomCSSDocsPage() {
   const commonSelectors = [
     { selector: '.stream-container', description: 'Main container for the entire stream overlay' },
     { selector: '.stream-card', description: 'Card that contains the track information' },
-    { selector: '.track-title', description: 'Song/track title' },
-    { selector: '.track-artist', description: 'Artist name' },
-    { selector: '.track-album', description: 'Album name' },
-    { selector: '.track-duration', description: 'Track duration (e.g., "3:45")' },
+    { selector: '.album-art', description: 'Album cover image container' },
+    { selector: '.track-info', description: 'Container for track text information' },
+    { selector: '.track-title', description: 'Song/track title text' },
+    { selector: '.track-artist', description: 'Artist name text' },
     { selector: '.track-progress', description: 'Progress bar container' },
-    { selector: '.track-credits', description: 'Track credits (writers, producers, etc.)' },
-    { selector: '.album-art', description: 'Album cover image' },
-    { selector: '.recent-tracks', description: 'Container for recent tracks list' },
+    { selector: '.track-duration', description: 'Duration timestamps (current and total time)' },
+    { selector: '.track-credits', description: 'Track credits section (Track ID, links)' },
+    { selector: '.recent-tracks', description: 'Container for recent tracks list (hidden by default - use CSS to show)' },
     { selector: '.recent-track-item', description: 'Individual recent track item' }
   ]
 
@@ -155,6 +222,18 @@ export default function CustomCSSDocsPage() {
                 <li>• Always use <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">!important</code> to override theme styles</li>
                 <li>• Test your changes before saving to avoid breaking your display</li>
                 <li>• Invalid CSS may cause your stream page to not load properly</li>
+                <li>• Custom CSS applies to STREAM pages only, not display pages</li>
+              </ul>
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-4">
+              <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">🎥 Stream Overlay Specific</h4>
+              <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                <li>• Stream pages have transparent backgrounds by default</li>
+                <li>• Perfect for OBS Browser Sources</li>
+                <li>• Elements use drop-shadow for visibility over any background</li>
+                <li>• Use backdrop-filter for glass effects</li>
+                <li>• <strong>Recent tracks are hidden by default</strong> - use <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">{`.recent-tracks { display: block !important; }`}</code> to show them</li>
               </ul>
             </div>
           </CardContent>

@@ -883,7 +883,15 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
   border-radius: 12px !important;
 }
 
-/* 🌸 Cute Pink Theme */
+/* � Show recent tracks (hidden by default) */
+.recent-tracks {
+  display: block !important;
+  background: rgba(0, 0, 0, 0.7) !important;
+  border-radius: 8px !important;
+  padding: 0.5rem !important;
+}
+
+/* �🌸 Cute Pink Theme */
 .track-artist {
   color: #ff6b9d !important;
   font-weight: 600 !important;

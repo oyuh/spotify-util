@@ -1,6 +1,6 @@
 'use client'
 
-import { DisplayStyleProvider } from '@/contexts/display-style-context'
+import { DisplayStyleProvider } from '@/contexts/display-style-context-v2'
 import { AnalyticsWrapper } from '@/components/AnalyticsWrapper'
 
 export default function DisplayLayout({
@@ -11,7 +11,7 @@ export default function DisplayLayout({
   return (
     <DisplayStyleProvider>
       <AnalyticsWrapper />
-      <div className="min-h-screen" data-display-container="true">
+      <div className="min-h-screen">
         {children}
       </div>
     </DisplayStyleProvider>

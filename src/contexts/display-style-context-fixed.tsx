@@ -161,3 +161,26 @@ export function useDisplayStyle() {
   }
   return context
 }
+
+// Helper hook to get style classes
+export function useDisplayStyleClasses() {
+  const { style } = useDisplayStyle()
+  console.log('🎨 useDisplayStyleClasses: Current style:', style)
+  const classes = {
+    background: style.styles.background,
+    cardBackground: style.styles.cardBackground,
+    cardBorder: style.styles.cardBorder,
+    text: style.styles.text,
+    secondaryText: style.styles.secondaryText,
+    accent: style.styles.accent,
+    progressBar: style.styles.progressBar,
+    progressBackground: style.styles.progressBackground,
+    shadow: style.styles.shadow,
+    hover: style.styles.hover,
+    fontFamily: style.styles.fontFamily || 'font-sans',
+    fontSize: style.styles.fontSize || 'text-base',
+    borderRadius: style.styles.borderRadius || 'rounded-md'
+  }
+  console.log('🎨 useDisplayStyleClasses: Returning classes:', classes)
+  return classes
+}

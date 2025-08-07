@@ -62,45 +62,64 @@ export function DisplayStyleProvider({
 
         // Test the image before applying it - try fixing CORS and URL issues
         const testImage = new Image()
-        testImage.crossOrigin = 'anonymous' // Handle CORS
-        testImage.onload = () => {
-          console.log('🖼️ Background image loaded successfully:', bgImage)
-          // Try different URL formats to fix the issue
-          const imageUrl = bgImage.includes('i.ibb.co') ?
-            bgImage.replace('/C5j9bG1m/', '/C5j9bG1/') : // Fix potential ibb.co URL issue
-            bgImage
 
-          displayContainer.style.backgroundImage = `url("${imageUrl}")`
-          displayContainer.style.backgroundSize = 'cover'
-          displayContainer.style.backgroundPosition = 'center'
-          displayContainer.style.backgroundRepeat = 'no-repeat'
-          displayContainer.style.backgroundAttachment = 'fixed'
-          console.log('🖼️ Applied background image to display container:', imageUrl)
+        const tryWithoutCORS = () => {
+          console.log('🔄 Trying without CORS headers')
+          const noCorsImage = new Image()
+          noCorsImage.onload = () => {
+            console.log('🖼️ Background image loaded successfully (no CORS):', bgImage)
+            displayContainer.style.backgroundImage = `url("${bgImage}")`
+            displayContainer.style.backgroundSize = 'cover'
+            displayContainer.style.backgroundPosition = 'center'
+            displayContainer.style.backgroundRepeat = 'no-repeat'
+            displayContainer.style.backgroundAttachment = 'fixed'
+            console.log('🖼️ Applied background image to display container:', bgImage)
+          }
+          noCorsImage.onerror = (error) => {
+            console.error('🖼️ Background image failed to load (no CORS):', bgImage, error)
+            handleImageError(bgImage)
+          }
+          noCorsImage.src = bgImage
         }
-        testImage.onerror = (error) => {
-          console.error('🖼️ Background image failed to load:', bgImage, error)
 
-          // Try alternative URL format for ibb.co
-          if (bgImage.includes('i.ibb.co') && bgImage.includes('/C5j9bG1m/')) {
-            const altUrl = bgImage.replace('/C5j9bG1m/', '/C5j9bG1/')
-            console.log('🔄 Trying alternative URL format:', altUrl)
+        const handleImageError = (originalUrl: string) => {
+          console.error('🖼️ Background image failed to load:', originalUrl)
 
-            const retryImage = new Image()
-            retryImage.crossOrigin = 'anonymous'
-            retryImage.onload = () => {
-              console.log('🖼️ Alternative URL worked:', altUrl)
-              displayContainer.style.backgroundImage = `url("${altUrl}")`
-              displayContainer.style.backgroundSize = 'cover'
-              displayContainer.style.backgroundPosition = 'center'
-              displayContainer.style.backgroundRepeat = 'no-repeat'
-              displayContainer.style.backgroundAttachment = 'fixed'
+          // Try alternative URL formats for ibb.co
+          if (originalUrl.includes('i.ibb.co')) {
+            let altUrl = originalUrl
+
+            // Try different URL formats that might work
+            if (originalUrl.includes('/C5j9bG1m/')) {
+              altUrl = originalUrl.replace('/C5j9bG1m/', '/C5j9bG1/')
+            } else if (originalUrl.includes('/C5j9bG1/')) {
+              // Try the viewer URL instead of direct image
+              altUrl = originalUrl.replace('https://i.ibb.co/', 'https://ibb.co/')
             }
-            retryImage.onerror = () => {
-              console.error('🖼️ Alternative URL also failed, removing background')
+
+            if (altUrl !== originalUrl) {
+              console.log('🔄 Trying alternative URL format:', altUrl)
+
+              const retryImage = new Image()
+              retryImage.onload = () => {
+                console.log('🖼️ Alternative URL worked:', altUrl)
+                displayContainer.style.backgroundImage = `url("${altUrl}")`
+                displayContainer.style.backgroundSize = 'cover'
+                displayContainer.style.backgroundPosition = 'center'
+                displayContainer.style.backgroundRepeat = 'no-repeat'
+                displayContainer.style.backgroundAttachment = 'fixed'
+              }
+              retryImage.onerror = () => {
+                console.error('🖼️ Alternative URL also failed, removing background')
+                displayContainer.removeAttribute('data-has-bg-image')
+                displayContainer.style.backgroundImage = ''
+              }
+              retryImage.src = altUrl
+            } else {
+              console.error('🖼️ No alternative URL to try, removing background')
               displayContainer.removeAttribute('data-has-bg-image')
               displayContainer.style.backgroundImage = ''
             }
-            retryImage.src = altUrl
           } else {
             // Remove background image but keep the theme applied
             displayContainer.removeAttribute('data-has-bg-image')
@@ -111,6 +130,21 @@ export function DisplayStyleProvider({
             displayContainer.style.backgroundAttachment = ''
             console.log('🖼️ Continuing with theme but without background image')
           }
+        }
+
+        testImage.crossOrigin = 'anonymous' // Handle CORS
+        testImage.onload = () => {
+          console.log('🖼️ Background image loaded successfully:', bgImage)
+          displayContainer.style.backgroundImage = `url("${bgImage}")`
+          displayContainer.style.backgroundSize = 'cover'
+          displayContainer.style.backgroundPosition = 'center'
+          displayContainer.style.backgroundRepeat = 'no-repeat'
+          displayContainer.style.backgroundAttachment = 'fixed'
+          console.log('🖼️ Applied background image to display container:', bgImage)
+        }
+        testImage.onerror = () => {
+          console.log('🔄 CORS loading failed, trying without CORS')
+          tryWithoutCORS()
         }
 
         // Set timeout for image loading

@@ -6,8 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Music, Clock, User } from 'lucide-react'
 import Image from 'next/image'
 import { formatDuration, getMediumImage } from '@/lib/utils'
-import { useBackgroundImage } from '@/hooks/use-background-image'
-import { useDisplayStyle, useDisplayStyleClasses } from '@/contexts/display-style-context'
+import { useDisplayStyle, useDisplayStyleClasses } from '@/contexts/display-style-context-v2'
 import { getDisplayStyle } from '@/lib/app-themes'
 // import { ViewCounter } from '@/components/ViewCounter'
 
@@ -50,17 +49,8 @@ export default function PublicDisplay() {
   console.log('DISPLAY PAGE: Component rendering!')
   const params = useParams()
   const identifier = params.identifier as string
-  const { setStyle, applyStyle } = useDisplayStyle()
+  const { setStyleWithPreferences } = useDisplayStyle()
   const styleClasses = useDisplayStyleClasses()
-
-  // Background image state
-  const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | undefined>()
-
-  // Background image hook
-  const backgroundImageHook = useBackgroundImage({
-    imageUrl: backgroundImageUrl,
-    containerId: 'display-background'
-  })
 
   const [currentTrack, setCurrentTrack] = useState<DisplayTrack | null>(null)
   const [loading, setLoading] = useState(true)
@@ -72,7 +62,6 @@ export default function PublicDisplay() {
   const [displayName, setDisplayName] = useState<string>('JamLog')
   const [hasBackgroundImage, setHasBackgroundImage] = useState<boolean>(false)
   const [preferencesLoaded, setPreferencesLoaded] = useState(false)
-  const [autoRefreshTriggered, setAutoRefreshTriggered] = useState(false)
 
   // Update document title when display name changes
   useEffect(() => {
@@ -132,31 +121,28 @@ export default function PublicDisplay() {
               setDisplayName(identifier)
             }
 
-            // Apply style with preferences
+            // Apply style with preferences using the correct method
             if (data.preferences?.displaySettings?.style) {
               const styleId = data.preferences.displaySettings.style
-              console.log('🎨 Display Page: Setting style to:', styleId)
+              console.log('🎨 Display Page: Setting style with preferences:', styleId)
 
+              // Use setStyleWithPreferences - let the context handle everything including background images
+              setStyleWithPreferences(styleId, data.preferences)
+
+              // Set UI state based on whether there's a background image
               const customBackground = data.preferences.displaySettings.backgroundImage
-              console.log('🎨 Display Page: Background image check:', customBackground)
-
               if (customBackground) {
                 console.log('🎨 Display Page: Custom background image found:', customBackground)
                 setHasBackgroundImage(true)
-                setBackgroundImageUrl(customBackground) // Use new hook state
-                setStyle(styleId) // Use regular style without background
               } else {
-                console.log('🎨 Display Page: No custom background, using standard style')
+                console.log('🎨 Display Page: No custom background')
                 setHasBackgroundImage(false)
-                setBackgroundImageUrl(undefined) // Clear background
-                setStyle(styleId)
               }
               setUserStyle(styleId)
             } else {
               console.log('🎨 Display Page: No style in preferences, using minimal')
+              setStyleWithPreferences('minimal', data.preferences)
               setHasBackgroundImage(false)
-              setBackgroundImageUrl(undefined) // Clear background
-              setStyle('minimal')
               setUserStyle('minimal')
             }
 
@@ -164,8 +150,8 @@ export default function PublicDisplay() {
           } else {
             console.log('🎨 Display Page: No preferences found, using defaults')
             setDisplayName(identifier)
+            setStyleWithPreferences('minimal', {})
             setHasBackgroundImage(false)
-            setStyle('minimal')
             setUserStyle('minimal')
             setPreferencesLoaded(true)
           }
@@ -186,8 +172,8 @@ export default function PublicDisplay() {
           // Neither slug nor Spotify ID worked
           console.log('🎨 Display Page: 404 error, user not found')
           setDisplayName(identifier)
+          setStyleWithPreferences('minimal', {})
           setHasBackgroundImage(false)
-          setStyle('minimal')
           setUserStyle('minimal')
           setPreferencesLoaded(true)
 
@@ -205,8 +191,8 @@ export default function PublicDisplay() {
         console.error('🎨 Display Page: Error fetching display data:', error)
         // Use defaults on error
         setDisplayName(identifier)
+        setStyleWithPreferences('minimal', {})
         setHasBackgroundImage(false)
-        setStyle('minimal')
         setUserStyle('minimal')
         setPreferencesLoaded(true)
 
@@ -225,24 +211,11 @@ export default function PublicDisplay() {
     }
 
     fetchDisplayData()
-  }, [identifier, setStyle])
+  }, [identifier, setStyleWithPreferences])
 
-  // Auto-refresh fallback if preferences didn't load correctly
-  useEffect(() => {
-    if (!autoRefreshTriggered && !loading) {
-      const timer = setTimeout(() => {
-        if (!preferencesLoaded) {
-          console.log('🔄 Auto-refreshing page due to preferences not loading')
-          setAutoRefreshTriggered(true)
-          window.location.reload()
-        }
-      }, 2000) // Wait 2 seconds then auto-refresh if preferences didn't load
+  // Remove the auto-refresh fallback as it was causing issues
 
-      return () => clearTimeout(timer)
-    }
-  }, [loading, preferencesLoaded, autoRefreshTriggered])
-
-  // Regular track updates (separate from initial load)
+  // Regular track updates (separate from initial load) - ONLY update track data, not preferences
   useEffect(() => {
     if (!preferencesLoaded) return // Don't start regular updates until preferences are loaded
 
@@ -251,7 +224,7 @@ export default function PublicDisplay() {
         let response: Response
 
         // Use the same endpoint logic as initial load
-        console.log('Updating track data for:', identifier)
+        console.log('Updating track data only for:', identifier)
         response = await fetch(`/api/public/display/${identifier}`, {
           cache: 'no-store',
           headers: {
@@ -271,6 +244,8 @@ export default function PublicDisplay() {
         if (response.ok) {
           const data = await response.json()
           console.log('Track update received:', data)
+
+          // ONLY update track data - DO NOT touch preferences or style
           setCurrentTrack(data)
           setLastUpdate(new Date())
 
@@ -316,7 +291,7 @@ export default function PublicDisplay() {
 
   if (loading) {
     return (
-      <div className={`min-h-screen ${styleClasses.background} flex items-center justify-center p-4`}>
+      <div data-display-container="true" className={`min-h-screen ${styleClasses.background} flex items-center justify-center p-4`}>
         <Card className={`${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow}`}>
           <CardContent className="p-8">
             <div className="flex items-center space-x-4 animate-pulse">
@@ -336,7 +311,7 @@ export default function PublicDisplay() {
   // Handle error states
   if (currentTrack?.error) {
     return (
-      <div className={`min-h-screen ${styleClasses.background} flex items-center justify-center p-4`}>
+      <div data-display-container="true" className={`min-h-screen ${styleClasses.background} flex items-center justify-center p-4`}>
         <Card className={`${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow}`}>
           <CardContent className="p-8 text-center">
             <div className="flex flex-col items-center space-y-4">
@@ -376,7 +351,11 @@ export default function PublicDisplay() {
   const progressPercent = duration > 0 ? (currentProgress / duration) * 100 : 0
 
   return (
-    <div id="display-background" className={`min-h-screen ${styleClasses.background} ${styleClasses.fontFamily} ${hasBackgroundImage ? 'display-with-bg' : ''} flex items-center justify-center p-4`}>
+    <div
+      id="display-background"
+      data-display-container="true"
+      className={`min-h-screen ${styleClasses.background} ${styleClasses.fontFamily} ${hasBackgroundImage ? 'display-with-bg' : ''} flex items-center justify-center p-4`}
+    >
       <div className={`w-full ${track.recent_tracks && track.recent_tracks.length > 0 ? 'max-w-6xl' : 'max-w-2xl'} ${styleClasses.shadow}`}>
         <div className={`${track.recent_tracks && track.recent_tracks.length > 0 ? 'grid grid-cols-1 lg:grid-cols-3 gap-6' : ''}`}>
           {/* Main Track Display */}

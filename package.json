@@ -10,6 +10,7 @@
     "dev:routes": "node scripts/list-dev-routes.js"
   },
   "dependencies": {
+    "@auth/mongodb-adapter": "^3.10.0",
     "@heroui/react": "^2.8.2",
     "@hookform/resolvers": "^5.2.1",
     "@next-auth/mongodb-adapter": "1.1.3",

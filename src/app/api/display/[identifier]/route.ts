@@ -3,6 +3,7 @@ import { MongoClient } from 'mongodb'
 import { getUserPreferences, getUserBySpotifyId } from '@/lib/db'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { logSecurityEvent } from "@/lib/security"
 
 const client = new MongoClient(process.env.MONGODB_URI!)
 
@@ -61,6 +62,13 @@ export async function GET(
 ) {
   try {
     const { identifier } = await params
+
+    // Validate identifier format to prevent injection attacks
+    if (!identifier || typeof identifier !== 'string' || identifier.length > 50) {
+      logSecurityEvent('INVALID_IDENTIFIER', { identifier, endpoint: '/api/display' }, request)
+      return NextResponse.json({ error: "Invalid identifier" }, { status: 400 })
+    }
+
     console.log('Display API called with identifier:', identifier)
 
     // Connect to database
@@ -104,6 +112,7 @@ export async function GET(
       if (userPrefs && userPrefs.privacySettings && userPrefs.privacySettings.isPublic === false) {
         console.log('🔒 PRIVACY CHECK: User has privacy enabled, access denied via Spotify ID')
         console.log('User should use slug instead:', userPrefs.privacySettings.customSlug)
+        logSecurityEvent('PRIVACY_BLOCKED_ACCESS', { identifier }, request)
         return NextResponse.json({ error: "Not found" }, { status: 404 })
       } else {
         console.log('✅ PRIVACY CHECK: User is public or no preferences found, allowing access')
@@ -651,6 +660,8 @@ export async function GET(
     }
   } catch (error) {
     console.error('Error in display API:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    logSecurityEvent('API_ERROR', { endpoint: '/api/display', error: errorMessage }, request)
     return NextResponse.json({
       name: '',
       artists: [],

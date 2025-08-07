@@ -3,12 +3,30 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { getUserPreferences, updateUserPreferences, createDefaultUserPreferences, isSlugTaken } from "@/lib/db"
 import { generateCustomSlug, isValidSlug, isValidImageUrl, sanitizeImageUrl } from "@/lib/utils"
+import { sanitizeHTML, logSecurityEvent } from "@/lib/security"
+
+// Simple input validation function
+function validateUserPreferencesInput(data: any): boolean {
+  if (!data || typeof data !== 'object') return false
+
+  // Validate display settings if present
+  if (data.displaySettings && typeof data.displaySettings !== 'object') return false
+  if (data.displaySettings?.customTitle && typeof data.displaySettings.customTitle !== 'string') return false
+  if (data.displaySettings?.customDescription && typeof data.displaySettings.customDescription !== 'string') return false
+
+  // Validate privacy settings if present
+  if (data.privacySettings && typeof data.privacySettings !== 'object') return false
+  if (data.privacySettings?.isPublic !== undefined && typeof data.privacySettings.isPublic !== 'boolean') return false
+
+  return true
+}
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
     if (!session?.userId) {
+      logSecurityEvent('UNAUTHORIZED_ACCESS_ATTEMPT', { endpoint: '/api/user/preferences' }, request)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -23,6 +41,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(preferences)
   } catch (error) {
     console.error("Error fetching user preferences:", error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    logSecurityEvent('API_ERROR', { endpoint: '/api/user/preferences', error: errorMessage }, request)
     return NextResponse.json(
       { error: "Failed to fetch preferences" },
       { status: 500 }
@@ -33,14 +53,31 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    console.log("Settings POST - Session:", { userId: session?.userId, spotifyId: session?.spotifyId })
 
     if (!session?.userId) {
+      logSecurityEvent('UNAUTHORIZED_ACCESS_ATTEMPT', { endpoint: '/api/user/preferences' }, request)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const body = await request.json()
-    console.log("Settings POST - Request body:", JSON.stringify(body, null, 2))
+
+    // Enhanced input validation
+    if (!validateUserPreferencesInput(body)) {
+      logSecurityEvent('INVALID_INPUT', { endpoint: '/api/user/preferences', userId: session.userId }, request)
+      return NextResponse.json(
+        { error: "Invalid input data" },
+        { status: 400 }
+      )
+    }
+
+    // Validate and sanitize text inputs
+    if (body.displaySettings?.customTitle && typeof body.displaySettings.customTitle === 'string') {
+      body.displaySettings.customTitle = sanitizeHTML(body.displaySettings.customTitle.slice(0, 100))
+    }
+
+    if (body.displaySettings?.customDescription && typeof body.displaySettings.customDescription === 'string') {
+      body.displaySettings.customDescription = sanitizeHTML(body.displaySettings.customDescription.slice(0, 500))
+    }
 
     // Validate custom slug if provided
     if (body.privacySettings?.customSlug) {
@@ -84,13 +121,13 @@ export async function POST(request: NextRequest) {
       body.privacySettings.customSlug = generateCustomSlug()
     }
 
-    console.log("Settings POST - About to update preferences for userId:", session.userId)
     await updateUserPreferences(session.userId, body)
-    console.log("Settings POST - Successfully updated preferences")
 
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error updating user preferences:", error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    logSecurityEvent('API_ERROR', { endpoint: '/api/user/preferences', error: errorMessage }, request)
     return NextResponse.json(
       { error: "Failed to update preferences" },
       { status: 500 }

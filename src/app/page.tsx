@@ -143,9 +143,9 @@ function Home() {
     },
     {
       icon: Palette,
-      title: "14 Beautiful Themes",
-      description: "Choose from minimal, cyberpunk, retro-wave, galaxy, aurora, and many more stunning themes.",
-      badge: "New",
+      title: "65+ Beautiful Themes",
+      description: "Choose from minimal, cyberpunk, retro-wave, galaxy, aurora, cosmic nebula, and many more stunning themes across multiple categories.",
+      badge: "Expanded",
       color: "from-green-600 to-green-700"
     },
     {
@@ -198,14 +198,22 @@ function Home() {
   ]
 
   const themes = [
-    { name: "Minimal", preview: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)", category: "Clean" },
-    { name: "Spotify Classic", preview: "linear-gradient(135deg, #1DB954 0%, #121212 100%)", category: "Official" },
-    { name: "Neon Purple", preview: "linear-gradient(135deg, #8B5CF6 0%, #1F1B24 100%)", category: "Cyberpunk" },
+    { name: "Aurora Borealis", preview: "linear-gradient(135deg, #00C9FF 0%, #92FE9D 50%, #FF0080 100%)", category: "Nature" },
+    { name: "Neon Cyan", preview: "linear-gradient(135deg, #00FFFF 0%, #1A1A2E 100%)", category: "Neon" },
+    { name: "Cosmic Nebula", preview: "linear-gradient(135deg, #FF1493 0%, #00BFFF 50%, #9400D3 100%)", category: "Space" },
+    { name: "Rainbow Prism", preview: "linear-gradient(135deg, #FF0000 0%, #FF7F00 16.66%, #FFFF00 33.33%, #00FF00 50%, #0000FF 66.66%, #4B0082 83.33%, #9400D3 100%)", category: "Vibrant" },
+    { name: "Golden Hour", preview: "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)", category: "Nature" },
+    { name: "Electric Violet", preview: "linear-gradient(135deg, #8A2BE2 0%, #9400D3 100%)", category: "Neon" },
+    { name: "Rose Gold", preview: "linear-gradient(135deg, #E8B4B8 0%, #D4A574 100%)", category: "Luxury" },
     { name: "Retro Wave", preview: "linear-gradient(135deg, #FF006E 0%, #8338EC 50%, #3A86FF 100%)", category: "80s" },
-    { name: "Ocean Breeze", preview: "linear-gradient(135deg, #00B4DB 0%, #0083B0 100%)", category: "Nature" },
-    { name: "Galaxy Purple", preview: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", category: "Space" },
-    { name: "Gold Luxury", preview: "linear-gradient(135deg, #FFD700 0%, #000000 100%)", category: "Premium" },
-    { name: "Aurora Borealis", preview: "linear-gradient(135deg, #00C9FF 0%, #92FE9D 50%, #FF0080 100%)", category: "Natural" }
+    { name: "Sunset Beach", preview: "linear-gradient(135deg, #FFA500 0%, #FF4500 50%, #8B008B 100%)", category: "Nature" },
+    { name: "Blood Moon", preview: "linear-gradient(135deg, #8B0000 0%, #4B0000 100%)", category: "Dark" },
+    { name: "Emerald City", preview: "linear-gradient(135deg, #50C878 0%, #008B8B 100%)", category: "Modern" },
+    { name: "Twilight Sky", preview: "linear-gradient(135deg, #191970 0%, #9370DB 50%, #FFB6C1 100%)", category: "Nature" },
+    { name: "Magenta Burst", preview: "linear-gradient(135deg, #FF00FF 0%, #C71585 100%)", category: "Neon" },
+    { name: "Jade Green", preview: "linear-gradient(135deg, #00A86B 0%, #50C878 100%)", category: "Modern" },
+    { name: "Coral Reef", preview: "linear-gradient(135deg, #FF7F7F 0%, #00CED1 100%)", category: "Nature" },
+    { name: "Space Odyssey", preview: "linear-gradient(135deg, #000000 0%, #4B0082 50%, #191970 100%)", category: "Dark" }
   ]
 
   if (status === "loading") {
@@ -251,7 +259,7 @@ function Home() {
           <div className="max-w-6xl mx-auto">
             <Badge className="hero-badge mb-6 bg-green-500 text-black font-medium px-4 py-2">
               <Sparkles className="w-4 h-4 mr-2" />
-              14 New Themes • Custom Backgrounds • Real-Time Updates
+              65+ New Themes • Custom Backgrounds • Real-Time Updates
             </Badge>
 
             <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black mb-8 leading-tight">
@@ -268,7 +276,7 @@ function Home() {
 
             <p className="hero-description text-xl sm:text-2xl text-gray-300 mb-12 max-w-4xl mx-auto leading-relaxed">
               Create stunning, customizable displays of your Spotify activity with
-              <span className="text-green-400 font-semibold"> 14 beautiful themes</span>,
+              <span className="text-green-400 font-semibold"> 65+ beautiful themes</span>,
               <span className="text-green-300 font-semibold"> custom backgrounds</span>, and
               <span className="text-green-400 font-semibold"> smooth animations</span>.
             </p>
@@ -296,7 +304,7 @@ function Home() {
             {/* Hero Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-3xl mx-auto">
               <div className="hero-stats text-center">
-                <div className="text-3xl font-bold text-green-400">14+</div>
+                <div className="text-3xl font-bold text-green-400">65+</div>
                 <div className="text-gray-400">Stunning Themes</div>
               </div>
               <div className="hero-stats text-center">
@@ -505,11 +513,11 @@ function Home() {
           <div className="text-center mb-16">
             <h2 className="text-4xl sm:text-5xl font-bold mb-6">
               <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
-                14 Stunning Themes
+                65+ Stunning Themes
               </span>
             </h2>
             <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-              From minimal to cyberpunk, find the perfect style for your music
+              From minimal to cosmic nebulas, find the perfect style for your music displays
             </p>
           </div>
 

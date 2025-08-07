@@ -355,7 +355,7 @@ export default function Dashboard() {
                   <CardDescription>Your recently played songs</CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="max-h-96 overflow-y-auto p-6 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted hover:scrollbar-thumb-muted-foreground">
+                  <div className="max-h-96 overflow-y-auto p-6">
                     <RecentTracks showHeader={false} limit={50} />
                   </div>
                 </CardContent>

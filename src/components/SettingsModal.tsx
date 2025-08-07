@@ -95,6 +95,12 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
   const [isSaving, setIsSaving] = useState(false)
   const [imageTestResult, setImageTestResult] = useState<'idle' | 'testing' | 'valid' | 'invalid'>('idle')
   const [slugCheckResult, setSlugCheckResult] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle')
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+
+  // Filter styles based on selected category
+  const filteredStyles = selectedCategory === 'all'
+    ? displayStyles
+    : displayStyles.filter(style => style.category === selectedCategory)
 
   // Load user preferences
   useEffect(() => {
@@ -740,17 +746,44 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Display Theme Selection */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Display Style</Label>
-                  <p className="text-xs text-muted-foreground">Style for stream overlay pages</p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {displayStyles.slice(0, 6).map((style) => (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Display Style</Label>
+                    <Badge variant="secondary" className="text-xs">
+                      {displayStyles.length} styles available
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Choose from {displayStyles.length} unique styles for your display</p>
+
+                  {/* Category Filter */}
+                  <div className="flex flex-wrap gap-2">
+                    {['all', 'minimal', 'modern', 'retro', 'neon', 'spotify', 'nature', 'gaming'].map((category) => (
+                      <Button
+                        key={category}
+                        variant={selectedCategory === category ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedCategory(category)}
+                        className="text-xs"
+                      >
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                        {category !== 'all' && (
+                          <Badge variant="secondary" className="ml-1 text-xs">
+                            {displayStyles.filter(s => s.category === category).length}
+                          </Badge>
+                        )}
+                      </Button>
+                    ))}
+                  </div>
+
+                  {/* Style Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-96 overflow-y-auto">
+                    {filteredStyles.map((style) => (
                       <div
                         key={style.id}
-                        className={`cursor-pointer p-3 rounded-lg border transition-all hover:scale-105 ${
+                        className={`group cursor-pointer p-3 rounded-lg border transition-all hover:scale-105 relative ${
                           preferences.displaySettings.style === style.id
-                            ? 'ring-2 ring-primary border-primary'
-                            : 'border-border hover:border-primary/50'
+                            ? 'ring-2 ring-primary border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/50 hover:bg-muted/50'
                         }`}
                         onClick={async () => {
                           setPreferences(prev => ({
@@ -775,7 +808,7 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
                             })
 
                             if (response.ok) {
-                              toast.success(`Display style changed to ${style.name}`)
+                              toast.success(`Style changed to ${style.name}`)
                             } else {
                               toast.error('Failed to save display style')
                             }
@@ -785,66 +818,50 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
                           }
                         }}
                       >
+                        {/* Preview */}
                         <div
-                          className="w-full h-8 rounded mb-2 border"
+                          className="w-full h-12 rounded mb-2 border relative overflow-hidden"
                           style={{ background: style.preview }}
-                        ></div>
-                        <div className="text-xs font-medium">{style.name}</div>
+                        >
+                          {/* Category badge */}
+                          <Badge
+                            variant="secondary"
+                            className="absolute top-1 right-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            {style.category}
+                          </Badge>
+
+                          {/* Selected indicator */}
+                          {preferences.displaySettings.style === style.id && (
+                            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                              <CheckCircle className="h-4 w-4 text-primary" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Style info */}
+                        <div className="space-y-1">
+                          <div className="text-xs font-medium truncate">{style.name}</div>
+                          <div className="text-xs text-muted-foreground truncate leading-tight">
+                            {style.description}
+                          </div>
+                        </div>
+
+                        {/* Hover preview */}
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-lg flex items-center justify-center">
+                          <div className="text-white text-xs text-center p-2">
+                            <div className="font-medium">{style.name}</div>
+                            <div className="text-xs opacity-80">{style.description}</div>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
 
-                  {/* Show more styles */}
-                  {displayStyles.length > 6 && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
-                      {displayStyles.slice(6).map((style) => (
-                        <div
-                          key={style.id}
-                          className={`cursor-pointer p-3 rounded-lg border transition-all hover:scale-105 ${
-                            preferences.displaySettings.style === style.id
-                              ? 'ring-2 ring-primary border-primary'
-                              : 'border-border hover:border-primary/50'
-                          }`}
-                          onClick={async () => {
-                            setPreferences(prev => ({
-                              ...prev,
-                              displaySettings: {
-                                ...prev.displaySettings,
-                                style: style.id
-                              }
-                            }))
-
-                            // Save to server immediately
-                            try {
-                              const response = await fetch('/api/user/display-style', {
-                                method: 'POST',
-                                headers: {
-                                  'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify({
-                                  styleId: style.id,
-                                  customCSS: preferences.displaySettings.customCSS
-                                }),
-                              })
-
-                              if (response.ok) {
-                                toast.success(`Display style changed to ${style.name}`)
-                              } else {
-                                toast.error('Failed to save display style')
-                              }
-                            } catch (error) {
-                              console.error('Error saving display style:', error)
-                              toast.error('Failed to save display style')
-                            }
-                          }}
-                        >
-                          <div
-                            className="w-full h-8 rounded mb-2 border"
-                            style={{ background: style.preview }}
-                          ></div>
-                          <div className="text-xs font-medium">{style.name}</div>
-                        </div>
-                      ))}
+                  {filteredStyles.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Palette className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>No styles found in this category</p>
                     </div>
                   )}
                 </div>

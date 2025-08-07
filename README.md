@@ -1,195 +1,198 @@
-# SpotifyUtil - Share Your Music Like Never Before
+# JamLog - Share Your Spotify Activity in Style
 
-A modern, privacy-first web application for sharing your Spotify listening activity with beautiful, customizable displays. Perfect for streamers, music lovers, and anyone who wants to share their musical journey.
+A modern, privacy-first web application for sharing your Spotify listening activity with beautiful, customizable displays. Perfect for streamers, content creators, and music lovers who want to showcase their musical journey.
+
+🌐 **Live at [jamlog.lol](https://jamlog.lol)**
 
 ## ✨ Features
 
-### 🎵 **Music Display**
-- **Currently Playing Track**: Show what you're listening to in real-time
-- **Recent Tracks**: Display your last 50 tracks with detailed information
-- **Track Details**: Artist, album, duration, progress, and track credits
-- **Album Artwork**: High-quality images from Spotify
+### 🎵 **Real-Time Music Display**
+- **Now Playing**: Display your current track with live progress updates
+- **Recent History**: Show your last played tracks with detailed information
+- **Rich Metadata**: Artist, album, duration, progress bars, and Spotify links
+- **High-Quality Artwork**: Beautiful album covers directly from Spotify
 
-### 🔒 **Privacy First**
-- **Custom Private Links**: Create hidden URLs not tied to your Spotify ID
-- **Granular Controls**: Choose exactly what information to display
-- **Public/Private Toggle**: Control who can see your music data
-- **Session Management**: Secure token handling with automatic refresh
+### 🔒 **Privacy & Security**
+- **Custom Slugs**: Create personalized URLs (e.g., `jamlog.lol/display/yourname`)
+- **Private Mode**: Hide your display from public discovery
+- **Granular Controls**: Choose exactly what information to share
+- **Secure Authentication**: Industry-standard OAuth with Spotify
 
-### 🎨 **Customizable Display**
-- **Modern UI**: Built with shadcn/ui components
-- **Custom CSS**: Advanced styling options for power users
-- **Streaming Mode**: Transparent backgrounds optimized for OBS
-- **Responsive Design**: Works perfectly on all devices
+### 🎨 **Customizable Themes & Styling**
+- **Multiple Themes**: Choose from various pre-built styles
+- **Custom Backgrounds**: Upload your own background images
+- **Advanced CSS**: Full custom styling for power users
+- **Responsive Design**: Perfect on desktop, mobile, and tablets
 
-### 📺 **Streaming Integration**
-- **OBS-Ready Overlays**: Direct URLs for streaming software
-- **Multiple Formats**: API endpoints and display pages
-- **Real-time Updates**: Live music data for your streams
-- **Position Controls**: Fixed positioning for streaming layouts
+### 📺 **Streaming & Content Creation**
+- **OBS Integration**: Direct browser source URLs for streaming
+- **Transparent Overlays**: Clean overlays for video content
+- **Real-Time Updates**: Live music data updates every 5 seconds
+- **Multiple Formats**: JSON API endpoints for custom integrations
 
-### ⚙️ **Comprehensive Settings**
-- **Modal-Based Settings**: Accessible from any page
-- **Full Dashboard Settings**: Extended options in the dashboard
-- **Export/Import**: Easy configuration management
-- **Link Management**: Copy and share your public URLs
+### ⚡ **Modern Tech Stack**
+- **Next.js 15**: Latest React framework with App Router
+- **TypeScript**: Full type safety and better development experience
+- **MongoDB**: Reliable data storage with automatic backups
+- **Tailwind CSS**: Utility-first styling with shadcn/ui components
 
-## 🚀 Getting Started
+## 🚀 Quick Start
+
+### For Users
+1. Visit [jamlog.lol](https://jamlog.lol)
+2. Sign in with your Spotify account
+3. Customize your display settings
+4. Share your personalized URL: `jamlog.lol/display/[your-slug]`
+
+### For Streamers
+1. Set up your display at [jamlog.lol](https://jamlog.lol)
+2. Copy your display URL from the dashboard
+3. Add as Browser Source in OBS/XSplit
+4. Customize position and styling as needed
+
+## � Development Setup
 
 ### Prerequisites
-- Node.js 18+
-- MongoDB (cloud or local)
-- Spotify Developer Account
+- Node.js 18+ and pnpm
+- MongoDB database (local or Atlas)
+- Spotify Developer App
 
-### Environment Setup
-Create a `.env.local` file with:
+### Environment Configuration
 ```bash
-MONGODB_URI=your_mongodb_connection_string
+# .env.local
+MONGODB_URI=mongodb://localhost:27017/jamlog
 SPOTIFY_CLIENT_ID=your_spotify_client_id
 SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
 NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your_random_secret
+NEXTAUTH_SECRET=your_secure_random_string
 ```
 
-### Installation
+### Installation & Development
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/spotify-util.git
+git clone https://github.com/oyuh/spotify-util.git
 cd spotify-util
-
-# Install dependencies
-npm install
-# or
 pnpm install
-
-# Run the development server
-npm run dev
-# or
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the application.
+Open [http://localhost:3000](http://localhost:3000) to start developing.
 
-## 📖 Usage
-
-### 🔐 **Authentication**
-1. Click "Sign in with Spotify"
-2. Authorize the application
-3. You'll be redirected to your dashboard
-
-### 🎵 **Viewing Your Music**
-- **Dashboard**: See your current track and recent listening history
-- **Public Display**: Share your music at `/display/[your-id]`
-- **API Endpoint**: Get JSON data at `/api/display/[your-id]`
-- **Stream Overlay**: Use `/api/stream/[your-id]` for OBS
-
-### ⚙️ **Configuring Settings**
-1. Click the **Settings** button in the navigation or dashboard
-2. Configure display options (what info to show)
-3. Set privacy preferences and custom URLs
-4. Copy your public links
-5. Customize styling and streaming options
-
-### 📺 **For Streamers**
-1. Enable **Streaming Mode** in settings
-2. Copy your stream URL: `/api/stream/[your-id]`
-3. Add as Browser Source in OBS
-4. Position and style as needed
-
-## 🛠 Technical Stack
-
-- **Framework**: Next.js 15 with App Router
-- **Authentication**: NextAuth.js with Spotify provider
-- **Database**: MongoDB with native driver
-- **UI Components**: shadcn/ui + Tailwind CSS
-- **API Integration**: Spotify Web API
-- **Token Management**: Automatic refresh with fallback handling
-
-## 📡 API Endpoints
+## 📡 API Reference
 
 ### Public Endpoints
-- `GET /api/display/[identifier]` - Get current track data (JSON)
-- `GET /api/stream/[identifier]` - Get streaming-optimized track data
+- `GET /api/public/display/[slug]` - Public display data by custom slug
+- `GET /api/display/[spotifyId]` - Display data by Spotify ID
 - `GET /display/[identifier]` - Public display page
 
 ### Authenticated Endpoints
-- `GET /api/user/preferences` - Get user settings
-- `POST /api/user/preferences` - Update user settings
-- `POST /api/user/generate-slug` - Generate custom URL slug
-- `GET /api/spotify/current-track` - Get current track (authenticated)
-- `GET /api/spotify/recent-tracks` - Get recent tracks (authenticated)
+- `GET /api/user/preferences` - User settings and preferences
+- `POST /api/user/preferences` - Update user configuration
+- `POST /api/user/generate-slug` - Create custom URL slug
+- `GET /api/spotify/current-track` - Current playing track
+- `GET /api/spotify/recent-tracks` - Recent listening history
 
-## 🔧 Configuration
+## 🎨 Customization Options
 
-### Display Options
-- Track name, artist, album information
-- Duration and progress indicators
-- Track credits and additional metadata
-- Recent tracks with customizable count (1-20)
+### Display Settings
+- **Track Information**: Title, artist, album, duration
+- **Progress Indicators**: Real-time playback progress
+- **Recent Tracks**: Configurable history (1-20 tracks)
+- **Visual Elements**: Album art, play status, timestamps
 
-### Privacy Settings
-- Public display toggle
-- Custom URL slugs for privacy
-- Spotify ID hiding options
+### Privacy Controls
+- **Public Display**: Toggle visibility of your music activity
+- **Custom URLs**: Create memorable, personalized links
+- **Data Control**: Choose what information to display publicly
 
 ### Styling Options
-- Theme selection
-- Custom CSS for advanced users
-- Streaming mode with transparent backgrounds
-- Position controls for overlays
+- **Pre-built Themes**: Multiple professionally designed themes
+- **Background Images**: Upload custom backgrounds
+- **Custom CSS**: Advanced styling for developers
+- **Streaming Mode**: Optimized transparent overlays
 
-## 📝 Development
+## 🏗 Architecture
+
+### Core Technologies
+- **Frontend**: Next.js 15, React 18, TypeScript
+- **Styling**: Tailwind CSS, shadcn/ui, Lucide icons
+- **Backend**: Next.js API routes, MongoDB native driver
+- **Authentication**: NextAuth.js with Spotify OAuth
+- **Deployment**: Vercel with automatic CI/CD
 
 ### Project Structure
 ```
 src/
-├── app/                 # Next.js app router pages
-├── components/          # React components
-│   ├── ui/             # shadcn/ui components
-│   ├── SettingsModal.tsx
-│   └── Navigation.tsx
-├── lib/                # Utility functions
-│   ├── auth.ts         # NextAuth configuration
-│   ├── db.ts          # Database helpers
-│   └── spotify.ts     # Spotify API helpers
-└── types/             # TypeScript definitions
+├── app/                    # Next.js App Router
+│   ├── api/               # API routes
+│   ├── display/           # Public display pages
+│   ├── dashboard/         # User dashboard
+│   └── login/             # Authentication
+├── components/            # React components
+│   ├── ui/               # shadcn/ui components
+│   └── [feature]/        # Feature-specific components
+├── lib/                  # Utilities and configuration
+├── contexts/             # React contexts for state
+└── types/               # TypeScript definitions
 ```
 
-### Contributing
+## 🔧 Configuration & Deployment
+
+### Environment Variables
+```bash
+# Required
+MONGODB_URI=            # MongoDB connection string
+SPOTIFY_CLIENT_ID=      # Spotify app client ID
+SPOTIFY_CLIENT_SECRET=  # Spotify app client secret
+NEXTAUTH_URL=          # Your domain (https://jamlog.lol)
+NEXTAUTH_SECRET=       # Random secure string
+
+# Optional
+NEXT_PUBLIC_APP_URL=   # Public app URL for metadata
+```
+
+### Spotify App Setup
+1. Create app at [Spotify Developer Dashboard](https://developer.spotify.com/)
+2. Add redirect URI: `https://your-domain.com/api/auth/callback/spotify`
+3. Copy Client ID and Client Secret to environment variables
+
+## 📊 Usage Analytics & Insights
+
+- **Real-time Activity**: See what's playing across all users
+- **Privacy-First**: No personal data collection or tracking
+- **Performance**: Optimized for fast loading and real-time updates
+- **Reliability**: Built for 99.9% uptime with error handling
+
+## 🤝 Contributing
+
+We welcome contributions! Please:
+
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes with proper TypeScript types
+4. Test thoroughly across different browsers
+5. Submit a pull request with detailed description
 
-## 📜 License
+### Development Guidelines
+- Follow TypeScript best practices
+- Use existing component patterns
+- Ensure mobile responsiveness
+- Write meaningful commit messages
+- Test authentication flows
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 📝 License & Legal
 
-## 🤝 Support
+This project is open source under the MIT License. See [LICENSE](LICENSE) for details.
 
-If you encounter any issues or have questions:
-1. Check the [Issues](https://github.com/yourusername/spotify-util/issues) page
-2. Create a new issue with detailed information
-3. Include your environment details and error messages
+**Important**: This application uses the Spotify Web API under their Developer Terms of Service. Users must have a valid Spotify account and authorize the application to access their listening data.
+
+## 🆘 Support & Community
+
+- **Issues**: [GitHub Issues](https://github.com/oyuh/spotify-util/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/oyuh/spotify-util/discussions)
+- **Website**: [jamlog.lol](https://jamlog.lol)
 
 ---
 
-Built with ❤️ for the music community
+**Built with ❤️ for music lovers, streamers, and developers**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+*Share your musical journey with the world - beautifully, privately, and effortlessly.*

@@ -293,7 +293,7 @@ function Home() {
               <Button
                 size="lg"
                 variant="outline"
-                onClick={() => window.open('/display/lawsonhart', '_blank')}
+                onClick={() => window.open('/display/wthlaw', '_blank')}
                 className="text-lg px-12 py-6 rounded-xl border-2 border-green-500 text-green-400 hover:bg-green-500 hover:text-black transition-all transform hover:scale-105"
               >
                 <Eye className="w-5 h-5 mr-2" />
@@ -496,7 +496,7 @@ function Home() {
                   <Button
                     size="lg"
                     variant="outline"
-                    onClick={() => window.open('/stream/lawsonhart', '_blank')}
+                    onClick={() => window.open('/stream/wthlaw', '_blank')}
                     className="border-2 border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white transition-all px-8 py-3 rounded-xl"
                   >
                     <Eye className="w-5 h-5 mr-2" />

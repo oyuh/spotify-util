@@ -14,6 +14,7 @@ import { CurrentTrack } from '@/components/CurrentTrack'
 import { RecentTracks } from '@/components/RecentTracks'
 import SettingsModal from '@/components/SettingsModal'
 import { getBaseUrl } from '@/lib/url'
+import Footer from '@/components/Footer'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,11 +65,6 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
-  const [commitInfo, setCommitInfo] = useState<{
-    hash: string
-    date: string
-    message: string
-  } | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -80,26 +76,7 @@ export default function Dashboard() {
       fetchUserProfile()
       fetchUserPreferences()
     }
-
-    // Fetch commit info regardless of auth status
-    fetchCommitInfo()
   }, [status, session, router])
-
-  const fetchCommitInfo = async () => {
-    try {
-      const response = await fetch('https://api.github.com/repos/oyuh/spotify-util/commits?per_page=1')
-      if (response.ok) {
-        const [latestCommit] = await response.json()
-        setCommitInfo({
-          hash: latestCommit.sha.substring(0, 7), // Short hash
-          date: new Date(latestCommit.commit.committer.date).toLocaleString(),
-          message: latestCommit.commit.message
-        })
-      }
-    } catch (error) {
-      console.error('Failed to fetch commit info:', error)
-    }
-  }
 
   const fetchUserProfile = async () => {
     try {
@@ -205,7 +182,7 @@ export default function Dashboard() {
   const streamingUrl = `${baseUrl}/stream/${displayIdentifier}`
 
   return (
-    <div className="min-h-screen bg-background pt-24">
+    <div className="min-h-screen bg-background pt-24 flex flex-col">
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8 flex items-center justify-between">
@@ -213,16 +190,6 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
             <p className="text-muted-foreground mt-2">Manage your Spotify display settings and view your music activity</p>
           </div>
-          {commitInfo && (
-            <div className="text-right">
-              <div className="text-sm text-muted-foreground">
-                Latest: <code className="bg-muted px-2 py-1 rounded text-xs font-mono">{commitInfo.hash}</code>
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {commitInfo.date}
-              </div>
-            </div>
-          )}
         </div>
 
         <Tabs defaultValue="music" className="space-y-6">
@@ -805,33 +772,9 @@ export default function Dashboard() {
             </Card>
           </TabsContent>
         </Tabs>
-
-        {/* Footer Links */}
-        <div className="mt-12 pb-8 border-t border-gray-200 dark:border-gray-800">
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-6 text-sm text-gray-600 dark:text-gray-400">
-            <a
-              href="/privacy"
-              className="hover:text-green-500 transition-colors"
-            >
-              Privacy Policy
-            </a>
-            <span className="hidden sm:inline">•</span>
-            <a
-              href="/terms"
-              className="hover:text-green-500 transition-colors"
-            >
-              Terms of Service
-            </a>
-            <span className="hidden sm:inline">•</span>
-            <a
-              href="/support"
-              className="hover:text-green-500 transition-colors"
-            >
-              Support
-            </a>
-          </div>
-        </div>
       </div>
+
+      <Footer />
     </div>
   )
 }

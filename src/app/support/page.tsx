@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { ArrowLeft, MessageCircle, Mail, Github, HelpCircle, Bug, Lightbulb, Shield, Clock, Send, ExternalLink, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import Footer from '@/components/Footer'
 import { toast } from 'sonner'
 
 export default function SupportPage() {
@@ -153,7 +154,7 @@ export default function SupportPage() {
   )
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Header */}
         <div className="mb-8">
@@ -313,6 +314,8 @@ export default function SupportPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Footer />
     </div>
   )
 }

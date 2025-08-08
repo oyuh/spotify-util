@@ -62,6 +62,9 @@ export default function PublicDisplay() {
   const [displayName, setDisplayName] = useState<string>('JamLog')
   const [hasBackgroundImage, setHasBackgroundImage] = useState<boolean>(false)
   const [preferencesLoaded, setPreferencesLoaded] = useState(false)
+  const [themeLoaded, setThemeLoaded] = useState(false)
+  const [backgroundLoaded, setBackgroundLoaded] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   // Update document title when display name changes
   useEffect(() => {
@@ -70,47 +73,106 @@ export default function PublicDisplay() {
     }
   }, [displayName])
 
-  // Combined effect to load both preferences and track data in one call
-  useEffect(() => {
-    console.log('DISPLAY PAGE: Combined useEffect starting, identifier:', identifier)
+  // Refresh mechanism - force reload of all data
+  const refreshDisplay = () => {
+    console.log('🔄 DISPLAY PAGE: Manual refresh triggered')
+    setRefreshKey(prev => prev + 1)
+    setThemeLoaded(false)
+    setBackgroundLoaded(false)
+    setPreferencesLoaded(false)
+    setLoading(true)
+  }
 
-    const fetchDisplayData = async () => {
+  // Listen for refresh events and keyboard shortcuts
+  useEffect(() => {
+    const handleRefresh = () => refreshDisplay()
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Refresh with R key or F5
+      if (e.key === 'r' || e.key === 'R' || e.key === 'F5') {
+        e.preventDefault()
+        refreshDisplay()
+      }
+    }
+
+    window.addEventListener('display-refresh', handleRefresh)
+    window.addEventListener('keydown', handleKeyPress)
+    return () => {
+      window.removeEventListener('display-refresh', handleRefresh)
+      window.removeEventListener('keydown', handleKeyPress)
+    }
+  }, [])
+
+  // Combined effect to load data in correct order: Theme -> Background -> Prefs -> Track
+  useEffect(() => {
+    console.log('🎨 DISPLAY PAGE: Starting load sequence, identifier:', identifier, 'refreshKey:', refreshKey)
+
+    const loadDisplayDataSequentially = async () => {
       try {
         setLoading(true)
-        console.log('🎨 Display Page: Fetching display data for identifier:', identifier)
+        console.log('📋 DISPLAY PAGE: Step 1 - Fetching display data for:', identifier)
 
-        // Single API call to get both preferences and track data
+        // Single API call to get all data
         let response: Response
 
         // First try as a slug
-        console.log('🎨 Display Page: Trying slug endpoint')
+        console.log('🔍 DISPLAY PAGE: Trying slug endpoint')
         response = await fetch(`/api/public/display/${identifier}`, {
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-cache',
           }
         })
-        console.log('🎨 Display Page: Slug API response status:', response.status)
+        console.log('🔍 DISPLAY PAGE: Slug API response status:', response.status)
 
         // If slug fails with 404, try as Spotify ID
         if (!response.ok && response.status === 404) {
-          console.log('🎨 Display Page: Slug failed, trying Spotify ID endpoint')
+          console.log('🔍 DISPLAY PAGE: Slug failed, trying Spotify ID endpoint')
           response = await fetch(`/api/display/${identifier}`, {
             cache: 'no-store',
             headers: {
               'Cache-Control': 'no-cache',
             }
           })
-          console.log('🎨 Display Page: Spotify ID API response status:', response.status)
+          console.log('🔍 DISPLAY PAGE: Spotify ID API response status:', response.status)
         }
 
         if (response.ok) {
           const data = await response.json()
-          console.log('🎨 Display Page: Combined API response data:', data)
+          console.log('📋 DISPLAY PAGE: Combined API response data:', data)
 
-          // FIRST: Apply preferences/style (most important to fix the race condition)
+          // STEP 1: Apply THEME first (highest priority)
+          console.log('🎨 DISPLAY PAGE: Step 1 - Loading theme')
+          if (data.preferences?.displaySettings?.style) {
+            const styleId = data.preferences.displaySettings.style
+            console.log('🎨 DISPLAY PAGE: Applying theme:', styleId)
+            setUserStyle(styleId)
+            setThemeLoaded(true)
+            // Small delay to ensure theme loads
+            await new Promise(resolve => setTimeout(resolve, 100))
+          } else {
+            console.log('🎨 DISPLAY PAGE: No theme found, using minimal')
+            setUserStyle('minimal')
+            setThemeLoaded(true)
+          }
+
+          // STEP 2: Apply BACKGROUND IMAGE second
+          console.log('🖼️ DISPLAY PAGE: Step 2 - Loading background image')
+          const customBackground = data.preferences?.displaySettings?.backgroundImage
+          if (customBackground) {
+            console.log('🖼️ DISPLAY PAGE: Custom background found:', customBackground)
+            setHasBackgroundImage(true)
+            // Give background time to load
+            await new Promise(resolve => setTimeout(resolve, 200))
+          } else {
+            console.log('🖼️ DISPLAY PAGE: No custom background')
+            setHasBackgroundImage(false)
+          }
+          setBackgroundLoaded(true)
+
+          // STEP 3: Apply all PREFERENCES third
+          console.log('⚙️ DISPLAY PAGE: Step 3 - Loading preferences')
           if (data.preferences) {
-            console.log('🎨 Display Page: Applying preferences:', data.preferences)
+            console.log('⚙️ DISPLAY PAGE: Applying all preferences:', data.preferences)
 
             // Set display name
             if (data.preferences?.publicDisplaySettings?.displayName) {
@@ -121,43 +183,20 @@ export default function PublicDisplay() {
               setDisplayName(identifier)
             }
 
-            // Apply style with preferences using the correct method
-            if (data.preferences?.displaySettings?.style) {
-              const styleId = data.preferences.displaySettings.style
-              console.log('🎨 Display Page: Setting style with preferences:', styleId)
-
-              // Use setStyleWithPreferences - let the context handle everything including background images
-              setStyleWithPreferences(styleId, data.preferences)
-
-              // Set UI state based on whether there's a background image
-              const customBackground = data.preferences.displaySettings.backgroundImage
-              if (customBackground) {
-                console.log('🎨 Display Page: Custom background image found:', customBackground)
-                setHasBackgroundImage(true)
-              } else {
-                console.log('🎨 Display Page: No custom background')
-                setHasBackgroundImage(false)
-              }
-              setUserStyle(styleId)
-            } else {
-              console.log('🎨 Display Page: No style in preferences, using minimal')
-              setStyleWithPreferences('minimal', data.preferences)
-              setHasBackgroundImage(false)
-              setUserStyle('minimal')
-            }
-
+            // Apply complete style with all preferences
+            setStyleWithPreferences(userStyle, data.preferences)
             setPreferencesLoaded(true)
+            // Give preferences time to apply
+            await new Promise(resolve => setTimeout(resolve, 150))
           } else {
-            console.log('🎨 Display Page: No preferences found, using defaults')
+            console.log('⚙️ DISPLAY PAGE: No preferences found, using defaults')
             setDisplayName(identifier)
             setStyleWithPreferences('minimal', {})
-            setHasBackgroundImage(false)
-            setUserStyle('minimal')
             setPreferencesLoaded(true)
           }
 
-          // SECOND: Set track data
-          console.log('Track data received:', data)
+          // STEP 4: Load TRACK INFO last
+          console.log('🎵 DISPLAY PAGE: Step 4 - Loading track info')
           setCurrentTrack(data)
           setLastUpdate(new Date())
 
@@ -168,13 +207,17 @@ export default function PublicDisplay() {
             setLastUpdateTime(Date.now())
           }
 
+          console.log('✅ DISPLAY PAGE: All data loaded successfully in correct order')
+
         } else if (response.status === 404) {
-          // Neither slug nor Spotify ID worked
-          console.log('🎨 Display Page: 404 error, user not found')
+          // Handle 404 - neither slug nor Spotify ID worked
+          console.log('❌ DISPLAY PAGE: 404 error, user not found')
           setDisplayName(identifier)
-          setStyleWithPreferences('minimal', {})
-          setHasBackgroundImage(false)
           setUserStyle('minimal')
+          setThemeLoaded(true)
+          setHasBackgroundImage(false)
+          setBackgroundLoaded(true)
+          setStyleWithPreferences('minimal', {})
           setPreferencesLoaded(true)
 
           setCurrentTrack({
@@ -188,12 +231,14 @@ export default function PublicDisplay() {
           })
         }
       } catch (error) {
-        console.error('🎨 Display Page: Error fetching display data:', error)
+        console.error('❌ DISPLAY PAGE: Error fetching display data:', error)
         // Use defaults on error
         setDisplayName(identifier)
-        setStyleWithPreferences('minimal', {})
-        setHasBackgroundImage(false)
         setUserStyle('minimal')
+        setThemeLoaded(true)
+        setHasBackgroundImage(false)
+        setBackgroundLoaded(true)
+        setStyleWithPreferences('minimal', {})
         setPreferencesLoaded(true)
 
         setCurrentTrack({
@@ -206,25 +251,32 @@ export default function PublicDisplay() {
           error: 'Error loading display'
         })
       } finally {
+        console.log('🏁 DISPLAY PAGE: Loading sequence complete')
         setLoading(false)
       }
     }
 
-    fetchDisplayData()
-  }, [identifier, setStyleWithPreferences])
+    loadDisplayDataSequentially()
+  }, [identifier, refreshKey, setStyleWithPreferences])
 
   // Remove the auto-refresh fallback as it was causing issues
 
   // Regular track updates (separate from initial load) - ONLY update track data, not preferences
   useEffect(() => {
-    if (!preferencesLoaded) return // Don't start regular updates until preferences are loaded
+    // Don't start regular updates until all core components are loaded
+    if (!themeLoaded || !backgroundLoaded || !preferencesLoaded) {
+      console.log('⏳ DISPLAY PAGE: Waiting for theme/background/prefs to load before starting track updates')
+      return
+    }
+
+    console.log('🔄 DISPLAY PAGE: Starting regular track updates')
 
     const fetchCurrentTrack = async () => {
       try {
         let response: Response
 
         // Use the same endpoint logic as initial load
-        console.log('Updating track data only for:', identifier)
+        console.log('🎵 DISPLAY PAGE: Updating track data only for:', identifier)
         response = await fetch(`/api/public/display/${identifier}`, {
           cache: 'no-store',
           headers: {
@@ -243,9 +295,9 @@ export default function PublicDisplay() {
 
         if (response.ok) {
           const data = await response.json()
-          console.log('Track update received:', data)
+          console.log('🎵 DISPLAY PAGE: Track update received:', data)
 
-          // ONLY update track data - DO NOT touch preferences or style
+          // ONLY update track data - DO NOT touch preferences, theme, or style
           setCurrentTrack(data)
           setLastUpdate(new Date())
 
@@ -256,7 +308,7 @@ export default function PublicDisplay() {
           }
         }
       } catch (error) {
-        console.error('Error updating track:', error)
+        console.error('❌ DISPLAY PAGE: Error updating track:', error)
       }
     }
 
@@ -266,10 +318,10 @@ export default function PublicDisplay() {
 
       const interval = setInterval(fetchCurrentTrack, 5000)
       return () => clearInterval(interval)
-    }, 5000)
+    }, 3000) // Slightly shorter delay since everything is loaded
 
     return () => clearTimeout(initialDelay)
-  }, [identifier, preferencesLoaded])
+  }, [identifier, themeLoaded, backgroundLoaded, preferencesLoaded])
 
   // Fake progress updates every second for smooth animation
   useEffect(() => {
@@ -290,16 +342,58 @@ export default function PublicDisplay() {
   }, [currentTrack?.is_playing, currentTrack?.duration_ms, lastRealProgress, lastUpdateTime])
 
   if (loading) {
+    // Show loading progress with steps
+    const getLoadingStep = () => {
+      if (!themeLoaded) return "Loading theme..."
+      if (!backgroundLoaded) return "Loading background..."
+      if (!preferencesLoaded) return "Loading preferences..."
+      return "Loading track info..."
+    }
+
+    const getLoadingProgress = () => {
+      let progress = 0
+      if (themeLoaded) progress += 25
+      if (backgroundLoaded) progress += 25
+      if (preferencesLoaded) progress += 25
+      if (currentTrack) progress += 25
+      return progress
+    }
+
     return (
       <div data-display-container="true" className={`min-h-screen ${styleClasses.background} flex items-center justify-center p-4`}>
         <Card className={`${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow}`}>
           <CardContent className="p-8">
-            <div className="flex items-center space-x-4 animate-pulse">
-              <div className="w-20 h-20 bg-muted rounded-lg"></div>
-              <div className="flex-1 space-y-2">
-                <div className="h-4 bg-muted rounded w-3/4"></div>
-                <div className="h-3 bg-muted rounded w-1/2"></div>
-                <div className="h-3 bg-muted rounded w-1/3"></div>
+            <div className="flex flex-col items-center space-y-4">
+              <div className="flex items-center space-x-4 animate-pulse">
+                <div className="w-20 h-20 bg-muted rounded-lg flex items-center justify-center">
+                  <Music className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-muted rounded w-3/4"></div>
+                  <div className="h-3 bg-muted rounded w-1/2"></div>
+                  <div className="h-3 bg-muted rounded w-1/3"></div>
+                </div>
+              </div>
+
+              {/* Loading progress */}
+              <div className="w-full max-w-xs">
+                <div className="text-xs text-muted-foreground text-center mb-2">
+                  {getLoadingStep()}
+                </div>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div
+                    className="bg-primary h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${getLoadingProgress()}%` }}
+                  ></div>
+                </div>
+                <div className="text-xs text-muted-foreground text-center mt-1">
+                  {getLoadingProgress()}% complete
+                </div>
+              </div>
+
+              {/* Refresh hint */}
+              <div className="text-xs text-muted-foreground/60 text-center">
+                Press R or F5 to refresh
               </div>
             </div>
           </CardContent>

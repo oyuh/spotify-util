@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, FileText, Users, Shield, AlertTriangle, Scale, Mail } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import Footer from '@/components/Footer'
 
 export default function TermsPage() {
   const router = useRouter()
@@ -57,7 +58,7 @@ export default function TermsPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <div className="mb-8">
@@ -302,6 +303,8 @@ export default function TermsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Footer />
     </div>
   )
 }

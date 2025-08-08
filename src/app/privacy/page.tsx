@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Shield, Eye, Database, Lock, Users, Clock, Mail } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import Footer from '@/components/Footer'
 
 export default function PrivacyPage() {
   const router = useRouter()
@@ -64,7 +65,7 @@ export default function PrivacyPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <div className="mb-8">
@@ -328,6 +329,8 @@ export default function PrivacyPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Footer />
     </div>
   )
 }

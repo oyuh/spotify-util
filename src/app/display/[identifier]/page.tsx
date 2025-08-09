@@ -8,6 +8,7 @@ import Image from 'next/image'
 import { formatDuration, getMediumImage } from '@/lib/utils'
 import { useDisplayStyle, useDisplayStyleClasses } from '@/contexts/display-style-context-v2'
 import { getDisplayStyle } from '@/lib/app-themes'
+import { LyricsDisplay } from '@/components/LyricsDisplay'
 // import { ViewCounter } from '@/components/ViewCounter'
 
 interface DisplayTrack {
@@ -42,6 +43,19 @@ interface DisplayTrack {
     external_urls: { spotify: string }
     played_at: string
   }>
+  preferences?: {
+    displaySettings?: {
+      style?: string
+      customCSS?: string
+      backgroundImage?: string
+      position?: { x: number; y: number }
+    }
+    publicDisplaySettings?: {
+      displayName?: string
+      showLyrics?: boolean
+    }
+    slug?: string
+  }
   error?: string
 }
 
@@ -444,16 +458,36 @@ export default function PublicDisplay() {
   const duration = track.duration_ms
   const progressPercent = duration > 0 ? (currentProgress / duration) * 100 : 0
 
+  // Check if lyrics should be shown
+  const showLyrics = currentTrack?.preferences?.publicDisplaySettings?.showLyrics ?? false
+  const trackName = track.name
+  const artistName = track.artists?.map(artist => artist.name).join(', ') || ''
+  const trackId = currentTrack?.credits?.track_id || ''
+
+  // Determine grid layout based on what's enabled
+  const hasRecentTracks = track.recent_tracks && track.recent_tracks.length > 0
+  const gridCols = (() => {
+    if (hasRecentTracks && showLyrics) return 'lg:grid-cols-4' // track, lyrics, recent tracks (1:1:1:1)
+    if (hasRecentTracks || showLyrics) return 'lg:grid-cols-3' // track + (lyrics OR recent) (2:1)
+    return '' // Just track
+  })()
+
+  const trackSpan = (() => {
+    if (hasRecentTracks && showLyrics) return 'lg:col-span-2' // Track takes 2 of 4 columns
+    if (hasRecentTracks || showLyrics) return 'lg:col-span-2' // Track takes 2 of 3 columns
+    return '' // Track takes full width
+  })()
+
   return (
     <div
       id="display-background"
       data-display-container="true"
       className={`min-h-screen ${styleClasses.background} ${styleClasses.fontFamily} ${hasBackgroundImage ? 'display-with-bg' : ''} flex items-center justify-center p-4`}
     >
-      <div className={`w-full ${track.recent_tracks && track.recent_tracks.length > 0 ? 'max-w-6xl' : 'max-w-2xl'} ${styleClasses.shadow}`}>
-        <div className={`${track.recent_tracks && track.recent_tracks.length > 0 ? 'grid grid-cols-1 lg:grid-cols-3 gap-6' : ''}`}>
+      <div className={`w-full ${hasRecentTracks || showLyrics ? 'max-w-6xl' : 'max-w-2xl'} ${styleClasses.shadow}`}>
+        <div className={`${gridCols ? `grid grid-cols-1 ${gridCols} gap-6` : ''}`}>
           {/* Main Track Display */}
-          <Card className={`${track.recent_tracks && track.recent_tracks.length > 0 ? 'lg:col-span-2' : ''} ${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow}`}>
+          <Card className={`${trackSpan} ${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow}`}>
             <CardContent className="p-8">
               {/* Vertical stacked layout - everything centered */}
               <div className="flex flex-col items-center text-center space-y-6">
@@ -589,6 +623,28 @@ export default function PublicDisplay() {
             </CardContent>
           </Card>
 
+          {/* Lyrics Panel - show if enabled in preferences */}
+          {showLyrics && trackName && trackName !== "Loading..." && trackName !== "No recent tracks available" && (
+            <Card className={`lg:col-span-1 ${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow}`}>
+              <CardContent className="p-6">
+                <h3 className={`text-lg font-semibold mb-4 flex items-center ${styleClasses.text}`}>
+                  <Music className="h-4 w-4 mr-2" />
+                  Lyrics
+                </h3>
+                <LyricsDisplay
+                  identifier={identifier}
+                  trackName={trackName}
+                  artistName={artistName}
+                  trackId={trackId}
+                  progress={currentProgress}
+                  isPlaying={track.is_playing}
+                  variant="display"
+                  className="lyrics-display-panel"
+                />
+              </CardContent>
+            </Card>
+          )}
+
           {/* Recent Tracks Sidebar - always show if there are recent tracks */}
           {track.recent_tracks && track.recent_tracks.length > 0 && (
             <Card className={`lg:col-span-1 ${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow}`}>
@@ -646,6 +702,47 @@ export default function PublicDisplay() {
           )}
         </div>
       </div>
+
+      {/* Custom styles for lyrics display */}
+      <style jsx global>{`
+        .lyrics-display-panel {
+          max-height: 400px;
+          overflow-y: auto;
+        }
+        
+        .lyrics-display-panel .lyrics-lines {
+          max-height: 350px;
+        }
+        
+        .lyrics-display-panel .lyrics-line {
+          transition: all 0.3s ease;
+          border-radius: 8px;
+          padding: 8px 12px;
+        }
+        
+        .lyrics-display-panel .lyrics-line:hover {
+          background: rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Custom scrollbar for lyrics */
+        .lyrics-display-panel::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        .lyrics-display-panel::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 3px;
+        }
+        
+        .lyrics-display-panel::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.3);
+          border-radius: 3px;
+        }
+        
+        .lyrics-display-panel::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.5);
+        }
+      `}</style>
     </div>
   )
 }

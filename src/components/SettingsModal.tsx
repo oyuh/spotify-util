@@ -44,6 +44,7 @@ interface UserPreferences {
     showDuration: boolean
     showProgress: boolean
     showCredits: boolean
+    showLyrics: boolean
     numberOfRecentTracks: number
   }
   privacySettings: {
@@ -78,6 +79,7 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
       showDuration: true,
       showProgress: true,
       showCredits: false,
+      showLyrics: false,
       numberOfRecentTracks: 5
     },
     privacySettings: {
@@ -434,6 +436,27 @@ export default function SettingsModal({ children, isFullVersion = false }: Setti
                           publicDisplaySettings: {
                             ...prev.publicDisplaySettings,
                             showCredits: checked
+                          }
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="display-lyrics">Synchronized Lyrics</Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Show real-time synchronized lyrics on your display page
+                      </p>
+                    </div>
+                    <Switch
+                      id="display-lyrics"
+                      checked={preferences.publicDisplaySettings.showLyrics}
+                      onCheckedChange={(checked) =>
+                        setPreferences(prev => ({
+                          ...prev,
+                          publicDisplaySettings: {
+                            ...prev.publicDisplaySettings,
+                            showLyrics: checked
                           }
                         }))
                       }

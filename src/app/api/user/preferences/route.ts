@@ -18,6 +18,10 @@ function validateUserPreferencesInput(data: any): boolean {
   if (data.privacySettings && typeof data.privacySettings !== 'object') return false
   if (data.privacySettings?.isPublic !== undefined && typeof data.privacySettings.isPublic !== 'boolean') return false
 
+  // Validate public display settings if present
+  if (data.publicDisplaySettings && typeof data.publicDisplaySettings !== 'object') return false
+  if (data.publicDisplaySettings?.showLyrics !== undefined && typeof data.publicDisplaySettings.showLyrics !== 'boolean') return false
+
   return true
 }
 

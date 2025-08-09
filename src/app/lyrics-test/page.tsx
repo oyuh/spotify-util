@@ -217,30 +217,56 @@ export default function LyricsTestPage() {
             <CardTitle>Implementation Status</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center space-x-2">
-                <span className="text-green-500">✅</span>
-                <span>Lyrics API with mock synchronized data</span>
+            <div className="space-y-3">
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center space-x-2">
+                  <span className="text-green-500">✅</span>
+                  <span>Lyrics API with multiple service integrations</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-green-500">✅</span>
+                  <span>Settings toggle for enabling lyrics on display</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-green-500">✅</span>
+                  <span>Stream lyrics page with transparent background</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-green-500">✅</span>
+                  <span>Display page lyrics integration</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-green-500">✅</span>
+                  <span>Real-time progress synchronization</span>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-green-500">✅</span>
-                <span>Stream lyrics page with transparent background</span>
+              
+              <Separator />
+              
+              <div>
+                <h4 className="font-medium mb-2">API Configuration</h4>
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <p>📋 <strong>Musixmatch:</strong> Free tier (2000 requests/day, unsynced lyrics)</p>
+                  <p>📋 <strong>Genius:</strong> Free tier (metadata only, no lyrics content)</p>
+                  <p>📋 <strong>LyricsFind:</strong> Premium service (synchronized timing data)</p>
+                </div>
+                <div className="mt-2 p-2 bg-muted rounded text-xs">
+                  <p>🔧 <strong>Setup:</strong> Copy <code>.env.example</code> to <code>.env.local</code> and add your API keys</p>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-green-500">✅</span>
-                <span>Display page lyrics integration</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-green-500">✅</span>
-                <span>Real-time progress synchronization</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-yellow-500">⚠️</span>
-                <span>Using mock lyrics data (real APIs need keys)</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-yellow-500">⚠️</span>
-                <span>Database preferences need lyrics settings</span>
+              
+              <div>
+                <h4 className="font-medium mb-2">Current Status</h4>
+                <div className="space-y-1 text-xs">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-yellow-500">⚠️</span>
+                    <span>Using enhanced mock lyrics (realistic demo data)</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-blue-500">🔧</span>
+                    <span>Add API keys to enable real lyrics fetching</span>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>

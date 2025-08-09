@@ -70,6 +70,10 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
   const [lastRealProgress, setLastRealProgress] = useState(0)
   const [lastUpdateTime, setLastUpdateTime] = useState(Date.now())
   const [identifier, setIdentifier] = useState<string | null>(null)
+  const [userStyle, setUserStyle] = useState('minimal')
+  const [hasBackgroundImage, setHasBackgroundImage] = useState(false)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
+
   const searchParams = useSearchParams()
   const type = searchParams.get("type") || "current"
 
@@ -78,14 +82,78 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
     params.then(p => setIdentifier(p.identifier))
   }, [params])
 
+  // Sequential loading function for stream (silent)
+  const loadStreamDataSequentially = async (data: any) => {
+    try {
+      // STEP 1: Apply THEME first (silently)
+      console.log('🎨 STREAM PAGE: Step 1 - Loading theme')
+      if (data.preferences?.displaySettings?.style) {
+        setUserStyle(data.preferences.displaySettings.style)
+        await new Promise(resolve => setTimeout(resolve, 200))
+      } else {
+        setUserStyle('minimal')
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+
+      // STEP 2: Apply BACKGROUND IMAGE second (silently)
+      console.log('🖼️ STREAM PAGE: Step 2 - Loading background image')
+      const customBackground = data.preferences?.displaySettings?.backgroundImage
+      if (customBackground) {
+        setHasBackgroundImage(true)
+        await new Promise(resolve => setTimeout(resolve, 250))
+      } else {
+        setHasBackgroundImage(false)
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+
+      // STEP 3: Apply PREFERENCES third (silently)
+      console.log('⚙️ STREAM PAGE: Step 3 - Loading preferences')
+      // Preferences are already included in data, just wait for processing
+      await new Promise(resolve => setTimeout(resolve, 150))
+
+      // STEP 4: Load TRACK INFO last
+      console.log('🎵 STREAM PAGE: Step 4 - Loading track info')
+      setTrackData(data || {
+        name: '',
+        artists: [],
+        album: { name: '', images: [] },
+        is_playing: false
+      })
+
+      // Update real progress tracking
+      if (data.progress_ms) {
+        setLastRealProgress(data.progress_ms)
+        setFakeProgress(data.progress_ms)
+        setLastUpdateTime(Date.now())
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 100))
+      console.log('✅ STREAM PAGE: All data loaded successfully in correct order')
+
+      if (isInitialLoad) {
+        setLoading(false)
+        setIsInitialLoad(false)
+      }
+    } catch (err) {
+      console.error('Stream loading error:', err)
+      setTrackData({
+        name: '',
+        artists: [],
+        album: { name: '', images: [] },
+        is_playing: false
+      })
+      if (isInitialLoad) {
+        setLoading(false)
+        setIsInitialLoad(false)
+      }
+    }
+  }
+
   useEffect(() => {
     if (!identifier) return // Wait for identifier to be set
 
     const fetchTrackData = async (isInitial = false) => {
       try {
-        if (isInitial) {
-          setLoading(true)
-        }
         setError(null)
 
         // Use the same logic as display page - try both endpoints
@@ -118,44 +186,29 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
           throw new Error(`Failed to fetch track data: ${response.status} - ${errorText}`)
         }
 
-        // The API now handles recent tracks fallback, so we just use the data as-is
-        setTrackData(data || {
-          name: '',
-          artists: [],
-          album: { name: '', images: [] },
-          is_playing: false
-        })
+        // Use sequential loading to ensure proper order
+        await loadStreamDataSequentially(data)
 
-        // Update real progress tracking
-        if (data.progress_ms) {
-          setLastRealProgress(data.progress_ms)
-          setFakeProgress(data.progress_ms)
-          setLastUpdateTime(Date.now())
-        }
       } catch (err) {
         console.error("Stream fetch error:", err)
         // For stream overlay, don't show errors - just set empty state
-        setTrackData({
+        await loadStreamDataSequentially({
           name: '',
           artists: [],
           album: { name: '', images: [] },
           is_playing: false
         })
-      } finally {
-        if (isInitial) {
-          setLoading(false)
-        }
       }
     }
 
     // Initial fetch
     fetchTrackData(true)
 
-    // Refresh every 20 seconds for real data
-    const realInterval = setInterval(() => fetchTrackData(false), 20000)
+    // Refresh every 1 second for very responsive stream overlay
+    const realInterval = setInterval(() => fetchTrackData(false), 1000)
 
     return () => clearInterval(realInterval)
-  }, [identifier, type])
+  }, [identifier, type, isInitialLoad])
 
   // Fake progress updates every second for smooth animation
   useEffect(() => {
@@ -175,12 +228,19 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
     return () => clearInterval(fakeInterval)
   }, [trackData?.is_playing, trackData?.duration_ms, lastRealProgress, lastUpdateTime])
 
-  // Custom CSS injection for stream page styling only
+  // Custom CSS injection for stream page styling only - respects loading order
   useEffect(() => {
-    if (trackData?.preferences?.displaySettings?.customCSS) {
+    if (trackData?.preferences?.displaySettings?.customCSS && !isInitialLoad) {
       const style = document.createElement("style")
       style.textContent = trackData.preferences.displaySettings.customCSS
       style.id = "stream-custom-css"
+
+      // Remove existing style first
+      const existingStyle = document.getElementById("stream-custom-css")
+      if (existingStyle) {
+        document.head.removeChild(existingStyle)
+      }
+
       document.head.appendChild(style)
 
       return () => {
@@ -190,7 +250,7 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
         }
       }
     }
-  }, [trackData?.preferences?.displaySettings?.customCSS])
+  }, [trackData?.preferences?.displaySettings?.customCSS, isInitialLoad])
 
   if (loading) {
     return (

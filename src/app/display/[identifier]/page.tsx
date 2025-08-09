@@ -146,13 +146,16 @@ export default function PublicDisplay() {
             const styleId = data.preferences.displaySettings.style
             console.log('🎨 DISPLAY PAGE: Applying theme:', styleId)
             setUserStyle(styleId)
+            // Ensure theme state is updated and wait for React to process
+            await new Promise(resolve => setTimeout(resolve, 300))
             setThemeLoaded(true)
-            // Small delay to ensure theme loads
-            await new Promise(resolve => setTimeout(resolve, 100))
+            await new Promise(resolve => setTimeout(resolve, 200))
           } else {
             console.log('🎨 DISPLAY PAGE: No theme found, using minimal')
             setUserStyle('minimal')
+            await new Promise(resolve => setTimeout(resolve, 200))
             setThemeLoaded(true)
+            await new Promise(resolve => setTimeout(resolve, 100))
           }
 
           // STEP 2: Apply BACKGROUND IMAGE second
@@ -161,13 +164,15 @@ export default function PublicDisplay() {
           if (customBackground) {
             console.log('🖼️ DISPLAY PAGE: Custom background found:', customBackground)
             setHasBackgroundImage(true)
-            // Give background time to load
-            await new Promise(resolve => setTimeout(resolve, 200))
+            // Give background more time to load and apply
+            await new Promise(resolve => setTimeout(resolve, 400))
           } else {
             console.log('🖼️ DISPLAY PAGE: No custom background')
             setHasBackgroundImage(false)
+            await new Promise(resolve => setTimeout(resolve, 150))
           }
           setBackgroundLoaded(true)
+          await new Promise(resolve => setTimeout(resolve, 200))
 
           // STEP 3: Apply all PREFERENCES third
           console.log('⚙️ DISPLAY PAGE: Step 3 - Loading preferences')
@@ -185,14 +190,16 @@ export default function PublicDisplay() {
 
             // Apply complete style with all preferences
             setStyleWithPreferences(userStyle, data.preferences)
+            await new Promise(resolve => setTimeout(resolve, 300))
             setPreferencesLoaded(true)
-            // Give preferences time to apply
-            await new Promise(resolve => setTimeout(resolve, 150))
+            await new Promise(resolve => setTimeout(resolve, 250))
           } else {
             console.log('⚙️ DISPLAY PAGE: No preferences found, using defaults')
             setDisplayName(identifier)
             setStyleWithPreferences('minimal', {})
+            await new Promise(resolve => setTimeout(resolve, 200))
             setPreferencesLoaded(true)
+            await new Promise(resolve => setTimeout(resolve, 150))
           }
 
           // STEP 4: Load TRACK INFO last
@@ -207,6 +214,8 @@ export default function PublicDisplay() {
             setLastUpdateTime(Date.now())
           }
 
+          // Final delay to ensure everything is rendered
+          await new Promise(resolve => setTimeout(resolve, 200))
           console.log('✅ DISPLAY PAGE: All data loaded successfully in correct order')
 
         } else if (response.status === 404) {

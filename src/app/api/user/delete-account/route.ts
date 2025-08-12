@@ -19,12 +19,16 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Delete user data from MongoDB
+    console.log(`🗑️ User ${userId} (Spotify: ${userPrefs.spotifyId}) requested account deletion`)
+
+    // Delete user data from MongoDB - this now does comprehensive deletion
     await deleteUser(userId)
 
     return NextResponse.json({
       success: true,
-      message: 'Account data deleted successfully'
+      message: 'All account data has been permanently deleted',
+      deletedUserId: userId,
+      deletedSpotifyId: userPrefs.spotifyId
     })
 
   } catch (error) {

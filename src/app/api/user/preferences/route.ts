@@ -32,10 +32,12 @@ export async function GET(request: NextRequest) {
 
     let preferences = await getUserPreferences(session.userId)
 
-    // If no preferences exist, create and return defaults
+    // If no preferences exist, something went wrong - they should have been created during sign-in
     if (!preferences) {
-      await createDefaultUserPreferences(session.userId, session.spotifyId || '')
-      preferences = await getUserPreferences(session.userId)
+      console.warn(`No preferences found for user ${session.userId}, this shouldn't happen`)
+      return NextResponse.json({
+        error: "User preferences not found. Please sign out and sign in again."
+      }, { status: 404 })
     }
 
     return NextResponse.json(preferences)

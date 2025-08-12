@@ -64,7 +64,7 @@ export async function GET(
     await client.connect()
 
     // Get user's access token from accounts collection (same logic as display API)
-    const db = client.db("test")
+    const db = client.db("spotify-util")
     const accounts = db.collection("accounts")
 
     // Try multiple ways to find the account (same as display API)

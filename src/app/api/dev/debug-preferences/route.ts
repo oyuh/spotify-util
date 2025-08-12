@@ -13,7 +13,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const db = client.db("test")
+    const db = client.db("spotify-util")
     const preferencesCollection = db.collection("user_preferences")
 
     // Check if user has preferences

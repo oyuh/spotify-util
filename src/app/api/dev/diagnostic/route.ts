@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No identifier provided. Use ?id=your_spotify_id' })
     }
 
-    const db = client.db("test")
+    const db = client.db("spotify-util")
     const accounts = db.collection("accounts")
 
     // Try to find the account with this identifier

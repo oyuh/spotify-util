@@ -12,7 +12,342 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Users, Shield, Database, Trash2, Lock, Unlock, RefreshCw, Search, Settings, BarChart3, AlertCircle, CheckCircle, XCircle } from 'lucide-react'
+import { Users, Shield, Database, Trash2, Lock, Unlock, RefreshCw, Search, Settings, BarChart3, AlertCircle, CheckCircle, XCircle, Play } from 'lucide-react'
+
+// Duplicate Manager Component
+function DuplicateManager() {
+  const [duplicates, setDuplicates] = useState<any>(null)
+  const [maintenanceResults, setMaintenanceResults] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  const analyzeDuplicates = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const response = await fetch('/api/user/analyze-duplicates')
+      const data = await response.json()
+      if (data.success) {
+        setDuplicates(data)
+      } else {
+        setError(data.error || 'Failed to analyze duplicates')
+      }
+    } catch (err) {
+      setError('Network error analyzing duplicates')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const runMaintenance = async (taskName?: string) => {
+    setLoading(true)
+    setError('')
+    setSuccess('')
+    try {
+      const response = await fetch('/api/admin/maintenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(taskName ? { taskName } : {})
+      })
+      const data = await response.json()
+      if (data.success) {
+        setMaintenanceResults(data.results)
+        setSuccess(`Maintenance completed successfully!`)
+      } else {
+        setError(data.error || 'Failed to run maintenance')
+      }
+    } catch (err) {
+      setError('Network error running maintenance')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const deleteDuplicate = async (preferenceId: string) => {
+    setLoading(true)
+    setError('')
+    setSuccess('')
+    try {
+      const response = await fetch('/api/user/analyze-duplicates', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preferenceIdToDelete: preferenceId })
+      })
+      const data = await response.json()
+      if (data.success) {
+        setSuccess(`Successfully deleted duplicate preference`)
+        analyzeDuplicates() // Refresh the analysis
+      } else {
+        setError(data.error || 'Failed to delete duplicate')
+      }
+    } catch (err) {
+      setError('Network error deleting duplicate')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const autoFixDuplicates = async () => {
+    setLoading(true)
+    setError('')
+    setSuccess('')
+    try {
+      const response = await fetch('/api/user/fix-my-duplicates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      const data = await response.json()
+      if (data.success) {
+        setSuccess(`Auto-fix completed! ${data.message}`)
+        analyzeDuplicates() // Refresh the analysis
+      } else {
+        setError(data.error || 'Failed to auto-fix duplicates')
+      }
+    } catch (err) {
+      setError('Network error during auto-fix')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const cleanupAllDuplicates = async () => {
+    setLoading(true)
+    setError('')
+    setSuccess('')
+    try {
+      const response = await fetch('/api/admin/cleanup-all-duplicates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      const data = await response.json()
+      if (data.success) {
+        setSuccess(`System-wide cleanup completed! Found ${data.results.duplicatesFound} duplicate groups, removed ${data.results.duplicatesRemoved} records`)
+        analyzeDuplicates() // Refresh the analysis
+      } else {
+        setError(data.error || 'Failed to cleanup all duplicates')
+      }
+    } catch (err) {
+      setError('Network error during cleanup')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    analyzeDuplicates()
+  }, [])
+
+  return (
+    <div className="space-y-4">
+      {error && (
+        <Alert variant="destructive">
+          <XCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {success && (
+        <Alert className="border-green-200 bg-green-50">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">{success}</AlertDescription>
+        </Alert>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Account Analysis</CardTitle>
+          <CardDescription>Check for duplicate user preferences in your account</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Button onClick={analyzeDuplicates} disabled={loading}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Analyze My Account
+            </Button>
+            {duplicates && duplicates.duplicateCount > 1 && (
+              <Button onClick={autoFixDuplicates} disabled={loading} variant="default" className="bg-green-600 hover:bg-green-700">
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Auto-Fix My Duplicates
+              </Button>
+            )}
+          </div>
+
+          {duplicates && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Current Session</Label>
+                  <div className="text-sm bg-gray-50 p-2 rounded">
+                    <div>User ID: {duplicates.currentSession.userId}</div>
+                    <div>Spotify ID: {duplicates.currentSession.spotifyId}</div>
+                  </div>
+                </div>
+                <div>
+                  <Label>Account Info</Label>
+                  <div className="text-sm bg-gray-50 p-2 rounded">
+                    {duplicates.account ? (
+                      <>
+                        <div>Provider: {duplicates.account.provider}</div>
+                        <div>Account ID: {duplicates.account.providerAccountId}</div>
+                      </>
+                    ) : (
+                      <div>No account found</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <Label>User Preferences Found: {duplicates.duplicateCount}</Label>
+                {duplicates.duplicateCount > 1 && (
+                  <Badge variant="destructive" className="ml-2">Duplicates Detected!</Badge>
+                )}
+              </div>
+
+              {duplicates.userPreferences.map((pref: any, index: number) => (
+                <Card key={pref._id} className={`${pref.isCurrentUser ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-sm">Preference #{index + 1}</CardTitle>
+                        <CardDescription>ID: {pref._id}</CardDescription>
+                      </div>
+                      <div className="flex gap-2">
+                        {pref.isCurrentUser && <Badge variant="default">Current User</Badge>}
+                        {pref.hasValidUserId && <Badge variant="outline">Valid User ID</Badge>}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <Label>User ID</Label>
+                        <div className="font-mono">{pref.userId}</div>
+                      </div>
+                      <div>
+                        <Label>Spotify ID</Label>
+                        <div className="font-mono">{pref.spotifyId}</div>
+                      </div>
+                      <div>
+                        <Label>Created</Label>
+                        <div>{new Date(pref.createdAt).toLocaleString()}</div>
+                      </div>
+                      <div>
+                        <Label>Updated</Label>
+                        <div>{new Date(pref.updatedAt).toLocaleString()}</div>
+                      </div>
+                      {pref.slug && (
+                        <div>
+                          <Label>Custom Slug</Label>
+                          <div>{pref.slug}</div>
+                        </div>
+                      )}
+                    </div>
+
+                    {!pref.isCurrentUser && duplicates.duplicateCount > 1 && (
+                      <div className="mt-4 pt-4 border-t">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete This Duplicate
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Duplicate Preference</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete this user preference record. Make sure you're keeping the correct one!
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteDuplicate(pref._id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete Duplicate
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+
+              {duplicates.recommendation && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Recommendation:</strong> {duplicates.recommendation.message}
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>System-wide Duplicate Cleanup</CardTitle>
+          <CardDescription>Clean up duplicates for all users in the system</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button onClick={cleanupAllDuplicates} disabled={loading} variant="destructive">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            Clean Up All User Duplicates
+          </Button>
+          <div className="text-sm text-muted-foreground">
+            <p><strong>Warning:</strong> This will find and remove duplicate user preferences for ALL users system-wide.</p>
+            <p>It will keep the oldest record or the one with a valid userId, and preserve custom slugs.</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>System-wide Maintenance</CardTitle>
+          <CardDescription>Run maintenance tasks to clean up the database</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Button onClick={() => runMaintenance('cleanup-duplicates')} disabled={loading}>
+              <Play className="h-4 w-4 mr-2" />
+              Fix Duplicates
+            </Button>
+            <Button onClick={() => runMaintenance('validate-linking')} disabled={loading}>
+              <Play className="h-4 w-4 mr-2" />
+              Validate Linking
+            </Button>
+            <Button onClick={() => runMaintenance('fix-malformed-userids')} disabled={loading}>
+              <Play className="h-4 w-4 mr-2" />
+              Fix Malformed IDs
+            </Button>
+            <Button onClick={() => runMaintenance()} disabled={loading}>
+              <Play className="h-4 w-4 mr-2" />
+              Run All Tasks
+            </Button>
+          </div>
+
+          {maintenanceResults && (
+            <div className="mt-4">
+              <Label>Last Maintenance Results</Label>
+              <Textarea
+                value={JSON.stringify(maintenanceResults, null, 2)}
+                readOnly
+                className="h-40 text-xs font-mono"
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
 
 interface User {
   id: string
@@ -276,6 +611,10 @@ export default function AdminPanel() {
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Users
+          </TabsTrigger>
+          <TabsTrigger value="duplicates" className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            Duplicates
           </TabsTrigger>
           <TabsTrigger value="system" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
@@ -565,6 +904,10 @@ export default function AdminPanel() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="duplicates" className="space-y-4">
+          <DuplicateManager />
         </TabsContent>
 
         <TabsContent value="system" className="space-y-4">

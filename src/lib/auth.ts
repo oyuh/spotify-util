@@ -52,7 +52,9 @@ const spotifyScopes = [
 ].join(" ")
 
 export const authOptions = {
-  adapter: MongoDBAdapter(clientPromise),
+  adapter: MongoDBAdapter(clientPromise, {
+    databaseName: "spotify-util" // Ensure NextAuth uses the spotify-util database
+  }),
   providers: [
     SpotifyProvider({
       clientId: process.env.SPOTIFY_CLIENT_ID!,
@@ -106,19 +108,28 @@ export const authOptions = {
       session.expiresAt = token.expiresAt as number
 
       console.log('Session callback - final session:', session)
+
+      // CRITICAL FIX: Create user preferences HERE instead of in signIn callback
+      // This ensures the account is fully created in MongoDB first
+      if (session.userId && session.spotifyId) {
+        try {
+          const { createDefaultUserPreferences } = await import("@/lib/db")
+          await createDefaultUserPreferences(session.userId, session.spotifyId)
+          console.log('✅ User preferences created/validated in session callback')
+        } catch (error) {
+          console.error("❌ Error creating user preferences in session callback:", error)
+        }
+      }
+
       return session
     },
     async signIn({ user, account }) {
+      console.log('=== SignIn Callback Started ===')
       console.log('SignIn callback - user:', user)
       console.log('SignIn callback - account:', account)
-      if (account?.provider === "spotify" && user.id && account.providerAccountId) {
-        // Create default user preferences when they sign in for the first time
-        try {
-          await createDefaultUserPreferences(user.id, account.providerAccountId)
-        } catch (error) {
-          console.error("Error creating default user preferences:", error)
-        }
-      }
+
+      // Just allow the sign-in, user preferences will be created in session callback
+      console.log('=== SignIn Callback Completed ===')
       return true
     },
   },

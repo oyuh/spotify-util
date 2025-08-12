@@ -72,7 +72,7 @@ export async function GET(
     console.log('Display API called with identifier:', identifier)
 
     // Connect to database
-    const db = client.db("test")
+    const db = client.db("spotify-util")
     const accounts = db.collection("accounts")
 
     console.log('Looking for account with providerAccountId:', identifier)
@@ -94,19 +94,17 @@ export async function GET(
 
     // If we found an account, check privacy settings
     if (account) {
-      console.log('Checking privacy settings for userId:', account.userId)
+      console.log('Found account for Spotify ID:', identifier, 'with userId:', account.userId)
 
-      // Look up preferences using the proper method
-      let userPrefs = await getUserPreferences(identifier)
-      if (!userPrefs) {
-        userPrefs = await getUserBySpotifyId(identifier)
-      }
-      if (!userPrefs) {
-        userPrefs = await getUserPreferences(account.userId.toString())
-      }
+      // Look up preferences by Spotify ID (the identifier is the Spotify ID)
+      let userPrefs = await getUserBySpotifyId(identifier)
 
       console.log('User preferences found:', userPrefs ? 'Yes' : 'No')
-      console.log('Privacy settings:', JSON.stringify(userPrefs?.privacySettings, null, 2))
+      if (userPrefs) {
+        console.log('Privacy settings:', JSON.stringify(userPrefs?.privacySettings, null, 2))
+      } else {
+        console.log('No user preferences found for Spotify ID:', identifier)
+      }
 
       // If user has privacy enabled (isPublic = false), they can only be accessed via slug
       if (userPrefs && userPrefs.privacySettings && userPrefs.privacySettings.isPublic === false) {

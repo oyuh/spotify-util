@@ -7,6 +7,17 @@ import getClientPromise from "./db"
 
 const clientPromise = getClientPromise()
 
+/**
+ * Enhanced Spotify OAuth Configuration
+ * 
+ * Key improvements for token reliability:
+ * - Comprehensive scope requests to ensure all necessary permissions
+ * - Force approval dialog to ensure users see all permissions
+ * - Enhanced logging to track scope grants and token issues
+ * - Graceful token refresh handling
+ * - Proper error handling for expired/revoked tokens
+ */
+
 // Function to refresh the access token
 async function refreshAccessToken(token: any) {
   try {
@@ -41,14 +52,23 @@ async function refreshAccessToken(token: any) {
   }
 }
 
-// Define scopes for Spotify API access
+// Define comprehensive scopes for Spotify API access
+// These scopes ensure the app can access all necessary user data
 const spotifyScopes = [
-  "user-read-email",
-  "user-read-private",
-  "user-read-currently-playing",
-  "user-read-recently-played",
-  "user-top-read",
-  "user-read-playback-state"
+  // Basic user information
+  "user-read-email",           // Access user's email address
+  "user-read-private",         // Access user's display name, country, etc.
+  
+  // Playback information (core functionality)
+  "user-read-currently-playing", // Read currently playing track
+  "user-read-recently-played",   // Read recently played tracks
+  "user-read-playback-state",    // Read playback state (playing/paused/device info)
+  
+  // Additional user data
+  "user-top-read",             // Read user's top artists/tracks
+  "user-library-read",         // Read saved tracks/albums (optional but useful)
+  "playlist-read-private",     // Read user's private playlists (optional)
+  "playlist-read-collaborative" // Read collaborative playlists (optional)
 ].join(" ")
 
 export const authOptions = {
@@ -62,7 +82,23 @@ export const authOptions = {
       authorization: {
         params: {
           scope: spotifyScopes,
+          // Force approval prompt to ensure users see and grant all permissions
+          show_dialog: "true", // This ensures users always see the permission dialog
         },
+      },
+      // Ensure we get all the profile information we need
+      profile(profile) {
+        return {
+          id: profile.id,
+          name: profile.display_name,
+          email: profile.email,
+          image: profile.images?.[0]?.url,
+          // Store additional Spotify-specific data
+          spotifyId: profile.id,
+          country: profile.country,
+          followers: profile.followers?.total,
+          product: profile.product, // Spotify subscription type (free/premium)
+        }
       },
     }),
   ],
@@ -127,6 +163,25 @@ export const authOptions = {
       console.log('=== SignIn Callback Started ===')
       console.log('SignIn callback - user:', user)
       console.log('SignIn callback - account:', account)
+
+      if (account?.provider === 'spotify') {
+        console.log('🎵 Spotify OAuth successful!')
+        console.log('✅ Granted scopes:', account.scope || 'No scope info available')
+        console.log('🔑 Access token length:', account.access_token?.length || 0)
+        console.log('🔄 Refresh token present:', !!account.refresh_token)
+        console.log('⏰ Token expires at:', account.expires_at ? new Date(account.expires_at * 1000).toISOString() : 'No expiry info')
+        
+        // Log if any required scopes are missing
+        const requiredScopes = spotifyScopes.split(' ')
+        const grantedScopes = account.scope?.split(' ') || []
+        const missingScopes = requiredScopes.filter(scope => !grantedScopes.includes(scope))
+        
+        if (missingScopes.length > 0) {
+          console.warn('⚠️ Missing required scopes:', missingScopes)
+        } else {
+          console.log('✅ All required scopes granted!')
+        }
+      }
 
       // Just allow the sign-in, user preferences will be created in session callback
       console.log('=== SignIn Callback Completed ===')

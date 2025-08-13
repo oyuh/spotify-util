@@ -39,6 +39,19 @@ async function getSpotifyData(accessToken: string, endpoint: string) {
     if (response.status === 204) {
       return null // No content (not playing)
     }
+    if (response.status === 403) {
+      console.log(`🚫 Spotify API 403 Forbidden for endpoint ${endpoint}`)
+      console.log('🔑 Token info - Access Token present:', !!accessToken)
+      console.log('🔑 Token length:', accessToken?.length || 0)
+      console.log('🔑 Token preview:', accessToken ? `${accessToken.substring(0, 10)}...` : 'none')
+
+      // Return a specific error object for 403 so we can handle it gracefully
+      return { error: 'forbidden', status: 403, message: 'Spotify access forbidden - token may be expired or revoked' }
+    }
+    if (response.status === 401) {
+      console.log(`🚫 Spotify API 401 Unauthorized for endpoint ${endpoint}`)
+      throw new Error(`Spotify API error: ${response.status}`)
+    }
     throw new Error(`Spotify API error: ${response.status}`)
   }
 
@@ -152,6 +165,25 @@ export async function GET(
     try {
       console.log('Calling Spotify API for currently-playing...')
       const currentTrack = await getSpotifyData(accessToken, '/me/player/currently-playing')
+
+      // Check if we got a 403 error response
+      if (currentTrack && typeof currentTrack === 'object' && currentTrack.error === 'forbidden') {
+        console.log('🚫 Got 403 Forbidden from Spotify API - handling gracefully')
+        return NextResponse.json({
+          name: 'Access Forbidden',
+          artists: [{ name: 'Spotify access temporarily unavailable' }],
+          album: { name: '', images: [] },
+          is_playing: false,
+          recent_tracks: [],
+          error: 'Spotify access forbidden - the user may need to re-authenticate',
+          errorDetails: {
+            status: 403,
+            message: 'Token may be expired, revoked, or insufficient permissions',
+            suggestion: 'User should try logging out and back in'
+          }
+        }, { status: 403 })
+      }
+
       console.log('Spotify currently-playing response:', currentTrack ? 'Got data' : 'No data (null)')
 
       if (!currentTrack || !currentTrack.item) {
@@ -192,6 +224,25 @@ export async function GET(
         try {
           console.log('Fetching recent tracks to get last played song...')
           const recentTracks = await getSpotifyData(accessToken, `/me/player/recently-played?limit=${userPreferences?.publicDisplaySettings?.numberOfRecentTracks || 10}`)
+
+          // Check if recent tracks also got a 403
+          if (recentTracks && typeof recentTracks === 'object' && recentTracks.error === 'forbidden') {
+            console.log('🚫 Got 403 Forbidden from recent tracks API too')
+            return NextResponse.json({
+              name: 'Access Forbidden',
+              artists: [{ name: 'Spotify access temporarily unavailable' }],
+              album: { name: '', images: [] },
+              is_playing: false,
+              recent_tracks: [],
+              error: 'Spotify access forbidden - the user may need to re-authenticate',
+              errorDetails: {
+                status: 403,
+                message: 'Token may be expired, revoked, or insufficient permissions',
+                suggestion: 'User should try logging out and back in'
+              }
+            }, { status: 403 })
+          }
+
           console.log('Recent tracks response:', recentTracks ? `Got ${recentTracks.items?.length || 0} tracks` : 'No data')
 
           if (recentTracks && recentTracks.items && recentTracks.items.length > 0) {
@@ -327,7 +378,13 @@ export async function GET(
       if (userPreferences?.publicDisplaySettings?.showRecentTracks) {
         try {
           const recentTracks = await getSpotifyData(accessToken, `/me/player/recently-played?limit=${userPreferences.publicDisplaySettings.numberOfRecentTracks || 5}`)
-          if (recentTracks && recentTracks.items) {
+
+          // Check if recent tracks got a 403 (shouldn't happen if current track worked, but just in case)
+          if (recentTracks && typeof recentTracks === 'object' && recentTracks.error === 'forbidden') {
+            console.log('🚫 Got 403 Forbidden from recent tracks API (unexpected)')
+            // Don't fail the whole request, just don't include recent tracks
+            recentTracksData = null
+          } else if (recentTracks && recentTracks.items) {
             recentTracksData = recentTracks.items.map((item: any) => ({
               name: item.track.name,
               artists: item.track.artists,
@@ -436,6 +493,25 @@ export async function GET(
 
           // Retry the request with new token
           const currentTrack = await getSpotifyData(accessToken, '/me/player/currently-playing')
+
+          // Check if we got a 403 error even after refresh
+          if (currentTrack && typeof currentTrack === 'object' && currentTrack.error === 'forbidden') {
+            console.log('🚫 Still got 403 Forbidden after token refresh - user may have revoked access')
+            return NextResponse.json({
+              name: 'Access Forbidden',
+              artists: [{ name: 'Spotify access temporarily unavailable' }],
+              album: { name: '', images: [] },
+              is_playing: false,
+              recent_tracks: [],
+              error: 'Spotify access forbidden even after token refresh - user may have revoked access',
+              errorDetails: {
+                status: 403,
+                message: 'Token was refreshed but access is still forbidden',
+                suggestion: 'User should try logging out and back in'
+              }
+            }, { status: 403 })
+          }
+
           console.log('Spotify response after refresh:', currentTrack ? 'Got data' : 'No data')
 
           if (!currentTrack || !currentTrack.item) {
@@ -452,6 +528,25 @@ export async function GET(
             try {
               console.log('Fetching recent tracks to get last played song after refresh...')
               const recentTracks = await getSpotifyData(accessToken, `/me/player/recently-played?limit=${userPreferences?.publicDisplaySettings?.numberOfRecentTracks || 10}`)
+
+              // Check if recent tracks also got a 403 after refresh
+              if (recentTracks && typeof recentTracks === 'object' && recentTracks.error === 'forbidden') {
+                console.log('🚫 Got 403 Forbidden from recent tracks API after refresh too')
+                return NextResponse.json({
+                  name: 'Access Forbidden',
+                  artists: [{ name: 'Spotify access temporarily unavailable' }],
+                  album: { name: '', images: [] },
+                  is_playing: false,
+                  recent_tracks: [],
+                  error: 'Spotify access forbidden even after token refresh',
+                  errorDetails: {
+                    status: 403,
+                    message: 'Token was refreshed but access is still forbidden',
+                    suggestion: 'User should try logging out and back in'
+                  }
+                }, { status: 403 })
+              }
+
               if (recentTracks && recentTracks.items && recentTracks.items.length > 0) {
                 recentTracksData = recentTracks.items.map((item: any) => ({
                   name: item.track.name,
@@ -568,7 +663,13 @@ export async function GET(
           if (userPreferences?.publicDisplaySettings?.showRecentTracks) {
             try {
               const recentTracks = await getSpotifyData(accessToken, `/me/player/recently-played?limit=${userPreferences.publicDisplaySettings.numberOfRecentTracks || 5}`)
-              if (recentTracks && recentTracks.items) {
+
+              // Check if recent tracks got a 403 (shouldn't happen if current track worked, but just in case)
+              if (recentTracks && typeof recentTracks === 'object' && recentTracks.error === 'forbidden') {
+                console.log('🚫 Got 403 Forbidden from recent tracks API after refresh (unexpected)')
+                // Don't fail the whole request, just don't include recent tracks
+                recentTracksData = null
+              } else if (recentTracks && recentTracks.items) {
                 recentTracksData = recentTracks.items.map((item: any) => ({
                   name: item.track.name,
                   artists: item.track.artists,

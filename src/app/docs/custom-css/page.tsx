@@ -91,6 +91,55 @@ export default function CustomCSSDocsPage() {
 }`
     },
     {
+      title: "Use Custom Font (Montserrat)",
+      description: "Load Montserrat from Google Fonts and apply it to stream text",
+      css: `/* Place @import at the very top */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+
+.stream-container,
+.track-info,
+.track-title,
+.track-artist {
+  font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji' !important;
+}
+
+.track-title {
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+}
+
+.track-artist {
+  font-weight: 600 !important;
+}`
+    },
+    {
+      title: "Use Album Dominant Color",
+      description: "Dynamically color the artist using the album art's dominant color (provided automatically)",
+      css: `/* The stream container exposes these variables:
+   --album-dominant: hex color (e.g., #aabbcc)
+   --album-dominant-rgb: r g b (e.g., 170 187 204)
+   --album-contrast: #111111 or #ffffff for legible text over the dominant color */
+
+.track-artist {
+  color: var(--album-dominant) !important;
+}
+
+/* Optional: auto-contrast for the title on top of a background using the same color */
+.track-title {
+  color: var(--album-contrast) !important;
+}`
+    },
+    {
+      title: "Album Color Accent Background",
+      description: "Add a soft background using the album dominant color for your card",
+      css: `.stream-card {
+  background: rgba(var(--album-dominant-rgb), 0.15) !important;
+  border: 1px solid rgba(var(--album-dominant-rgb), 0.35) !important;
+  backdrop-filter: blur(8px) !important;
+  border-radius: 12px !important;
+}`
+    },
+    {
       title: "Album Art Styling",
       description: "Customize the album artwork appearance",
       css: `.album-art {
@@ -214,6 +263,16 @@ export default function CustomCSSDocsPage() {
               Custom CSS (Cascading Style Sheets) lets you modify the appearance of your stream page beyond the built-in themes.
               You can change colors, fonts, sizes, layouts, and add visual effects to make your stream overlay unique.
             </p>
+
+            <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
+              <h4 className="font-medium text-emerald-800 dark:text-emerald-200 mb-2">Using Web Fonts (e.g., Montserrat)</h4>
+              <ul className="text-sm text-emerald-700 dark:text-emerald-300 space-y-1">
+                <li>• You can load fonts via <code className="bg-emerald-100 dark:bg-emerald-900 px-1 rounded">@import</code> at the top of your Custom CSS</li>
+                <li>• Example: <code className="bg-emerald-100 dark:bg-emerald-900 px-1 rounded">@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');</code></li>
+                <li>• Then apply it with <code className="bg-emerald-100 dark:bg-emerald-900 px-1 rounded">font-family: 'Montserrat', ...</code> to your selectors</li>
+                <li>• If OBS blocks remote font loads, add a <code className="bg-emerald-100 dark:bg-emerald-900 px-1 rounded">&lt;link&gt;</code> tag in a browser source HTML wrapper or enable caching</li>
+              </ul>
+            </div>
 
             <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
               <h4 className="font-medium text-amber-800 dark:text-amber-200 mb-2">⚠️ Important Notes</h4>

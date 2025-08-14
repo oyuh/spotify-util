@@ -8,6 +8,7 @@ import { Music, Play, Pause } from "lucide-react"
 import { formatDuration, formatProgress, getMediumImage } from "@/lib/utils"
 import { ScrollingText } from "@/components/ScrollingText"
 import Image from "next/image"
+import { useCallback } from "react"
 
 interface StreamerDisplayProps {
   slug?: string
@@ -73,9 +74,102 @@ export default function StreamerPage({ params }: { params: Promise<{ identifier:
   const [userStyle, setUserStyle] = useState('minimal')
   const [hasBackgroundImage, setHasBackgroundImage] = useState(false)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [albumDominant, setAlbumDominant] = useState<string | null>(null)
 
   const searchParams = useSearchParams()
   const type = searchParams.get("type") || "current"
+  // Extract dominant color from album art and expose via CSS variables for custom CSS
+  const setStreamCSSVars = useCallback((vars: Record<string, string | null>) => {
+    if (typeof document === 'undefined') return
+    const container = document.querySelector('[data-stream-container="true"]') as HTMLElement | null
+    if (!container) return
+    for (const [k, v] of Object.entries(vars)) {
+      if (v) container.style.setProperty(k, v)
+      else container.style.removeProperty(k)
+    }
+  }, [])
+
+  const extractDominantColor = useCallback(async (url: string): Promise<{ hex: string; rgb: [number, number, number]; contrast: string } | null> => {
+  return new Promise(resolve => {
+      try {
+    const img = new window.Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d', { willReadFrequently: true })
+            if (!ctx) return resolve(null)
+            const w = 64, h = 64
+            canvas.width = w
+            canvas.height = h
+            ctx.drawImage(img, 0, 0, w, h)
+            const { data } = ctx.getImageData(0, 0, w, h)
+            const counts = new Map<number, number>()
+            let avgR = 0, avgG = 0, avgB = 0, count = 0
+            for (let i = 0; i < data.length; i += 4) {
+              const a = data[i + 3]
+              if (a < 200) continue // ignore very transparent
+              const r = data[i], g = data[i + 1], b = data[i + 2]
+              // quantize to 16 buckets per channel (4-bit)
+              const key = ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4)
+              counts.set(key, (counts.get(key) || 0) + 1)
+              avgR += r; avgG += g; avgB += b; count++
+            }
+            let r = 255, g = 255, b = 255
+            if (counts.size > 0) {
+              let maxKey = 0, maxVal = -1
+              for (const [k, v] of counts.entries()) {
+                if (v > maxVal) { maxVal = v; maxKey = k }
+              }
+              // reconstruct center of bucket
+              r = ((maxKey >> 8) & 0xF) * 16 + 8
+              g = ((maxKey >> 4) & 0xF) * 16 + 8
+              b = (maxKey & 0xF) * 16 + 8
+            } else if (count > 0) {
+              r = Math.round(avgR / count)
+              g = Math.round(avgG / count)
+              b = Math.round(avgB / count)
+            }
+            const hex = `#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`
+            const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+            const contrast = luminance > 0.6 ? '#111111' : '#ffffff'
+            resolve({ hex, rgb: [r, g, b], contrast })
+          } catch (e) {
+            resolve(null)
+          }
+        }
+        img.onerror = () => resolve(null)
+        img.src = url
+      } catch (e) {
+        resolve(null)
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    const albumImage = trackData?.album?.images ? getMediumImage(trackData.album.images) : undefined
+    if (!albumImage) {
+      setAlbumDominant(null)
+      setStreamCSSVars({ '--album-dominant': null, '--album-dominant-rgb': null, '--album-contrast': null })
+      return
+    }
+    let cancelled = false
+    extractDominantColor(albumImage).then(res => {
+      if (cancelled) return
+      if (res) {
+        setAlbumDominant(res.hex)
+        setStreamCSSVars({
+          '--album-dominant': res.hex,
+          '--album-dominant-rgb': `${res.rgb[0]} ${res.rgb[1]} ${res.rgb[2]}`,
+          '--album-contrast': res.contrast,
+        })
+      } else {
+        setAlbumDominant(null)
+        setStreamCSSVars({ '--album-dominant': null, '--album-dominant-rgb': null, '--album-contrast': null })
+      }
+    })
+    return () => { cancelled = true }
+  }, [trackData?.album?.images, extractDominantColor, setStreamCSSVars])
 
   // Get identifier from params
   useEffect(() => {

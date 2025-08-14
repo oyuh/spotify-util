@@ -9,7 +9,7 @@ const clientPromise = getClientPromise()
 
 /**
  * Enhanced Spotify OAuth Configuration
- * 
+ *
  * Key improvements for token reliability:
  * - Comprehensive scope requests to ensure all necessary permissions
  * - Force approval dialog to ensure users see all permissions
@@ -58,12 +58,12 @@ const spotifyScopes = [
   // Basic user information
   "user-read-email",           // Access user's email address
   "user-read-private",         // Access user's display name, country, etc.
-  
+
   // Playback information (core functionality)
   "user-read-currently-playing", // Read currently playing track
   "user-read-recently-played",   // Read recently played tracks
   "user-read-playback-state",    // Read playback state (playing/paused/device info)
-  
+
   // Additional user data
   "user-top-read",             // Read user's top artists/tracks
   "user-library-read",         // Read saved tracks/albums (optional but useful)
@@ -170,12 +170,12 @@ export const authOptions = {
         console.log('🔑 Access token length:', account.access_token?.length || 0)
         console.log('🔄 Refresh token present:', !!account.refresh_token)
         console.log('⏰ Token expires at:', account.expires_at ? new Date(account.expires_at * 1000).toISOString() : 'No expiry info')
-        
+
         // Log if any required scopes are missing
         const requiredScopes = spotifyScopes.split(' ')
         const grantedScopes = account.scope?.split(' ') || []
         const missingScopes = requiredScopes.filter(scope => !grantedScopes.includes(scope))
-        
+
         if (missingScopes.length > 0) {
           console.warn('⚠️ Missing required scopes:', missingScopes)
         } else {

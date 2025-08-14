@@ -49,7 +49,7 @@ export default function PublicDisplay() {
   console.log('DISPLAY PAGE: Component rendering!')
   const params = useParams()
   const identifier = params.identifier as string
-  const { setStyleWithPreferences } = useDisplayStyle()
+  const { setStyleWithPreferences, style } = useDisplayStyle()
   const styleClasses = useDisplayStyleClasses()
 
   const [currentTrack, setCurrentTrack] = useState<DisplayTrack | null>(null)
@@ -144,15 +144,22 @@ export default function PublicDisplay() {
           console.log('🎨 DISPLAY PAGE: Step 1 - Loading theme')
           if (data.preferences?.displaySettings?.style) {
             const styleId = data.preferences.displaySettings.style
-            console.log('🎨 DISPLAY PAGE: Applying theme:', styleId)
+            console.log('🎨 DISPLAY PAGE: Found theme in preferences:', styleId)
+            console.log('🎨 DISPLAY PAGE: Full display settings:', data.preferences.displaySettings)
             setUserStyle(styleId)
-            // Ensure theme state is updated and wait for React to process
-            await new Promise(resolve => setTimeout(resolve, 300))
+
+            // Apply the style immediately with preferences
+            console.log('🎨 DISPLAY PAGE: Calling setStyleWithPreferences with:', styleId, data.preferences)
+            setStyleWithPreferences(styleId, data.preferences)
+
+            await new Promise(resolve => setTimeout(resolve, 500))
             setThemeLoaded(true)
-            await new Promise(resolve => setTimeout(resolve, 200))
+            await new Promise(resolve => setTimeout(resolve, 300))
           } else {
-            console.log('🎨 DISPLAY PAGE: No theme found, using minimal')
+            console.log('🎨 DISPLAY PAGE: No theme found in preferences, using minimal')
+            console.log('🎨 DISPLAY PAGE: Preferences object:', data.preferences)
             setUserStyle('minimal')
+            setStyleWithPreferences('minimal', data.preferences || {})
             await new Promise(resolve => setTimeout(resolve, 200))
             setThemeLoaded(true)
             await new Promise(resolve => setTimeout(resolve, 100))
@@ -175,9 +182,9 @@ export default function PublicDisplay() {
           await new Promise(resolve => setTimeout(resolve, 200))
 
           // STEP 3: Apply all PREFERENCES third
-          console.log('⚙️ DISPLAY PAGE: Step 3 - Loading preferences')
+          console.log('⚙️ DISPLAY PAGE: Step 3 - Loading additional preferences')
           if (data.preferences) {
-            console.log('⚙️ DISPLAY PAGE: Applying all preferences:', data.preferences)
+            console.log('⚙️ DISPLAY PAGE: Found additional preferences:', data.preferences)
 
             // Set display name
             if (data.preferences?.publicDisplaySettings?.displayName) {
@@ -188,18 +195,16 @@ export default function PublicDisplay() {
               setDisplayName(identifier)
             }
 
-            // Apply complete style with all preferences
-            setStyleWithPreferences(userStyle, data.preferences)
-            await new Promise(resolve => setTimeout(resolve, 300))
-            setPreferencesLoaded(true)
-            await new Promise(resolve => setTimeout(resolve, 250))
-          } else {
-            console.log('⚙️ DISPLAY PAGE: No preferences found, using defaults')
-            setDisplayName(identifier)
-            setStyleWithPreferences('minimal', {})
+            // Style and background image were already applied in step 1
             await new Promise(resolve => setTimeout(resolve, 200))
             setPreferencesLoaded(true)
             await new Promise(resolve => setTimeout(resolve, 150))
+          } else {
+            console.log('⚙️ DISPLAY PAGE: No preferences found, using defaults')
+            setDisplayName(identifier)
+            await new Promise(resolve => setTimeout(resolve, 100))
+            setPreferencesLoaded(true)
+            await new Promise(resolve => setTimeout(resolve, 100))
           }
 
           // STEP 4: Load TRACK INFO last
@@ -370,11 +375,11 @@ export default function PublicDisplay() {
 
     return (
       <div data-display-container="true" className={`min-h-screen ${styleClasses.background} flex items-center justify-center p-4`}>
-        <Card className={`${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow}`}>
+        <Card className={`${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow} ${style.id === 'liquid-glass' ? 'glass-card' : ''}`}>
           <CardContent className="p-8">
             <div className="flex flex-col items-center space-y-4">
               <div className="flex items-center space-x-4 animate-pulse">
-                <div className="w-20 h-20 bg-muted rounded-lg flex items-center justify-center">
+                <div className={`w-20 h-20 bg-muted rounded-lg flex items-center justify-center ${style.id === 'liquid-glass' ? 'glass-card' : ''}`}>
                   <Music className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <div className="flex-1 space-y-2">
@@ -415,7 +420,7 @@ export default function PublicDisplay() {
   if (currentTrack?.error) {
     return (
       <div data-display-container="true" className={`min-h-screen ${styleClasses.background} flex items-center justify-center p-4`}>
-        <Card className={`${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow}`}>
+        <Card className={`${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow} ${style.id === 'liquid-glass' ? 'glass-card' : ''}`}>
           <CardContent className="p-8 text-center">
             <div className="flex flex-col items-center space-y-4">
               <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
@@ -462,7 +467,7 @@ export default function PublicDisplay() {
       <div className={`w-full ${track.recent_tracks && track.recent_tracks.length > 0 ? 'max-w-6xl' : 'max-w-2xl'} ${styleClasses.shadow}`}>
         <div className={`${track.recent_tracks && track.recent_tracks.length > 0 ? 'grid grid-cols-1 lg:grid-cols-3 gap-6' : ''}`}>
           {/* Main Track Display */}
-          <Card className={`${track.recent_tracks && track.recent_tracks.length > 0 ? 'lg:col-span-2' : ''} ${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow}`}>
+          <Card className={`${track.recent_tracks && track.recent_tracks.length > 0 ? 'lg:col-span-2' : ''} ${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow} ${style.id === 'liquid-glass' ? 'glass-card' : ''}`}>
             <CardContent className="p-8">
               {/* Vertical stacked layout - everything centered */}
               <div className="flex flex-col items-center text-center space-y-6">
@@ -474,7 +479,7 @@ export default function PublicDisplay() {
                       alt={`${track.album.name} cover`}
                       width={240}
                       height={240}
-                      className="rounded-xl shadow-xl"
+                      className={`rounded-xl shadow-xl ${style.id === 'liquid-glass' ? 'album-art' : ''}`}
                     />
                   ) : (
                     <div className="w-[240px] h-[240px] bg-muted rounded-xl shadow-xl flex items-center justify-center">
@@ -490,20 +495,20 @@ export default function PublicDisplay() {
                 <div className="w-full space-y-4 max-w-md">
                   {/* Song Title - Directly under the image */}
                   <div>
-                    <h1 className={`text-3xl font-bold ${track.name === "Loading..." || track.name === "No recent tracks available" ? styleClasses.secondaryText : styleClasses.text}`}>
+                    <h1 className={`text-3xl font-bold ${track.name === "Loading..." || track.name === "No recent tracks available" ? styleClasses.secondaryText : styleClasses.text} ${style.id === 'liquid-glass' ? 'glass-text' : ''}`}>
                       {track.name}
                     </h1>
                   </div>
 
                   {/* Artist - Under the song title */}
-                  <div className={`${styleClasses.secondaryText}`}>
+                  <div className={`${styleClasses.secondaryText} ${style.id === 'liquid-glass' ? 'glass-text' : ''}`}>
                     <p className="text-xl">
                       {track.artists.map((artist: { name: string }) => artist.name).join(', ')}
                     </p>
                   </div>
 
                   {/* Album - Under the artist */}
-                  <div className={`text-lg ${styleClasses.secondaryText}`}>
+                  <div className={`text-lg ${styleClasses.secondaryText} ${style.id === 'liquid-glass' ? 'glass-text' : ''}`}>
                     <p>
                       from <span className="font-medium">{track.album.name}</span>
                     </p>
@@ -517,27 +522,27 @@ export default function PublicDisplay() {
                   {/* Progress and Duration - Under everything else */}
                   {track.name !== "Loading..." && track.name !== "No recent tracks available" && (
                     <div className="space-y-3 w-full">
-                      <div className={`w-full ${styleClasses.progressBackground} rounded-full h-2`}>
+                      <div className={`w-full ${styleClasses.progressBackground} rounded-full h-2 ${style.id === 'liquid-glass' ? 'glass-progress-bg' : ''}`}>
                         <div
-                          className={`${styleClasses.progressBar} h-2 rounded-full transition-all duration-1000 ease-linear`}
+                          className={`${styleClasses.progressBar} h-2 rounded-full transition-all duration-1000 ease-linear ${style.id === 'liquid-glass' ? 'liquid-progress' : ''}`}
                           style={{ width: `${Math.min(progressPercent, 100)}%` }}
                         ></div>
                       </div>
-                      <div className={`flex items-center justify-between text-sm ${styleClasses.secondaryText}`}>
-                        <span>{formatDuration(currentProgress)}</span>
+                      <div className={`flex items-center justify-between text-sm ${styleClasses.secondaryText} ${style.id === 'liquid-glass' ? 'glass-text' : ''}`}>
+                        <span className={`${style.id === 'liquid-glass' ? 'glass-text' : ''}`}>{formatDuration(currentProgress)}</span>
                         <div className="flex items-center space-x-1">
                           <Clock className="h-3 w-3" />
-                          <span>{formatDuration(duration)}</span>
+                          <span className={`${style.id === 'liquid-glass' ? 'glass-text' : ''}`}>{formatDuration(duration)}</span>
                         </div>
                       </div>
                     </div>
                   )}
 
                   {/* Status - At the bottom */}
-                  <div className="flex flex-col items-center space-y-2 pt-2">
+                  <div className={`flex flex-col items-center space-y-2 pt-2 ${style.id === 'liquid-glass' ? 'glass-text' : ''}`}>
                     <div className="flex items-center space-x-2">
                       <div className={`w-2 h-2 rounded-full ${track.is_playing ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-                      <span className={`text-sm font-medium ${styleClasses.secondaryText}`}>
+                      <span className={`text-sm font-medium ${styleClasses.secondaryText} ${style.id === 'liquid-glass' ? 'glass-text' : ''}`}>
                         {track.name === "Loading..." || track.name === "No recent tracks available"
                           ? 'Loading...'
                           : track.is_playing
@@ -548,7 +553,7 @@ export default function PublicDisplay() {
                         }
                       </span>
                     </div>
-                    <span className={`text-xs ${styleClasses.secondaryText}`}>
+                    <span className={`text-xs ${styleClasses.secondaryText} ${style.id === 'liquid-glass' ? 'glass-text' : ''}`}>
                       Updated {lastUpdate.toLocaleTimeString()}
                     </span>
                   </div>
@@ -600,7 +605,7 @@ export default function PublicDisplay() {
 
           {/* Recent Tracks Sidebar - always show if there are recent tracks */}
           {track.recent_tracks && track.recent_tracks.length > 0 && (
-            <Card className={`lg:col-span-1 ${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow}`}>
+            <Card className={`lg:col-span-1 ${styleClasses.cardBackground} ${styleClasses.cardBorder} ${styleClasses.shadow} ${style.id === 'liquid-glass' ? 'glass-card' : ''}`}>
               <CardContent className="p-6">
                 <h3 className={`text-lg font-semibold mb-4 flex items-center ${styleClasses.text}`}>
                   <Clock className="h-4 w-4 mr-2" />
@@ -608,7 +613,7 @@ export default function PublicDisplay() {
                 </h3>
                 <div className="space-y-3 max-h-[500px] overflow-y-auto">
                   {track.recent_tracks.map((recentTrack, index) => (
-                    <div key={index} className={`group ${styleClasses.hover} p-2 rounded-lg transition-colors`}>
+                    <div key={index} className={`group ${styleClasses.hover} p-2 rounded-lg transition-colors ${style.id === 'liquid-glass' ? 'glass-card' : ''}`}>
                       <div className="flex items-start space-x-3">
                         {recentTrack.album.images[0] && (
                           <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">

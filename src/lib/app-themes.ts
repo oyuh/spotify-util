@@ -200,20 +200,161 @@ export const displayStyles: DisplayStyle[] = [
     preview: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
     category: 'minimal',
     styles: {
-      background: 'bg-gray-900',
-      cardBackground: 'bg-gray-800/90 backdrop-blur-sm',
-      cardBorder: 'border border-gray-700',
-      text: 'text-gray-100',
-      secondaryText: 'text-gray-400',
-      accent: 'text-white',
-      progressBar: 'bg-white',
-      progressBackground: 'bg-gray-700',
-      shadow: 'shadow-sm',
-      hover: 'hover:bg-gray-800',
+  // Neutral grayscale (no bluish tint)
+  background: 'bg-neutral-900',
+  cardBackground: 'bg-neutral-800/90 backdrop-blur-sm',
+  cardBorder: 'border border-neutral-700',
+  text: 'text-neutral-100',
+  secondaryText: 'text-neutral-400',
+  accent: 'text-neutral-50',
+  progressBar: 'bg-neutral-100',
+  progressBackground: 'bg-neutral-700',
+  shadow: 'shadow-sm',
+  hover: 'hover:bg-neutral-800',
+  fontFamily: 'font-sans',
+  fontSize: 'text-base',
+  borderRadius: 'rounded-md'
+    }
+  },
+  {
+    id: 'liquid-glass',
+    name: 'Liquid Glass',
+    description: 'Apple-inspired translucent glass effect',
+    preview: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 30%, #cbd5e1 60%, #94a3b8 100%)',
+    category: 'minimal',
+    styles: {
+      background: 'bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100',
+      // Slightly more opaque for better contrast
+      cardBackground: 'bg-white/30 backdrop-blur-2xl border-white/40',
+      cardBorder: 'border border-white/40 shadow-xl shadow-black/5',
+      // Darker text for readability on light/translucent surfaces
+      text: 'text-slate-900',
+      secondaryText: 'text-slate-700',
+      accent: 'text-blue-600',
+      progressBar: 'bg-gradient-to-r from-blue-500 to-indigo-500',
+      // More visible track background
+      progressBackground: 'bg-white/60',
+      shadow: 'shadow-2xl shadow-black/10',
+      hover: 'hover:bg-white/40 transition-all duration-300',
       fontFamily: 'font-sans',
       fontSize: 'text-base',
-      borderRadius: 'rounded-md'
-    }
+      borderRadius: 'rounded-2xl'
+    },
+    customCSS: `
+      /* Apple Liquid Glass Effect */
+      [data-display-container="true"][data-display-style="liquid-glass"] {
+        background: linear-gradient(135deg,
+          rgba(248, 250, 252, 0.95) 0%,
+          rgba(226, 232, 240, 0.9) 20%,
+          rgba(203, 213, 225, 0.85) 40%,
+          rgba(148, 163, 184, 0.8) 60%,
+          rgba(100, 116, 139, 0.75) 80%,
+          rgba(71, 85, 105, 0.7) 100%
+        );
+        backdrop-filter: blur(40px);
+        -webkit-backdrop-filter: blur(40px);
+      }
+
+      /* Enhanced glass cards */
+      [data-display-container="true"][data-display-style="liquid-glass"] .glass-card {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(30px);
+        -webkit-backdrop-filter: blur(30px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow:
+          0 8px 32px rgba(0, 0, 0, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.4),
+          inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+        border-radius: 24px;
+        position: relative;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* Subtle internal overlay to stabilize contrast */
+      [data-display-container="true"][data-display-style="liquid-glass"] .glass-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        /* Gentle vertical gradient that lifts contrast without killing the glass */
+        background: linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.06) 0%,
+          rgba(0, 0, 0, 0.10) 100%
+        );
+        pointer-events: none;
+      }
+
+      [data-display-container="true"][data-display-style="liquid-glass"] .glass-card:hover {
+        background: rgba(255, 255, 255, 0.25);
+        box-shadow:
+          0 12px 40px rgba(0, 0, 0, 0.15),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5),
+          inset 0 -1px 0 rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+      }
+
+      /* Frosted progress bars */
+      [data-display-container="true"][data-display-style="liquid-glass"] .liquid-progress {
+        background: rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      [data-display-container="true"][data-display-style="liquid-glass"] .liquid-progress-fill {
+        background: linear-gradient(90deg,
+          rgba(59, 130, 246, 0.8) 0%,
+          rgba(99, 102, 241, 0.9) 50%,
+          rgba(139, 92, 246, 0.8) 100%
+        );
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        border-radius: 12px;
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+      }
+
+      /* Contrast-aware text using blend mode */
+      [data-display-container="true"][data-display-style="liquid-glass"] .glass-text {
+        /* Force a stable base color, invert vs backdrop for contrast */
+        color: #ffffff !important;
+        mix-blend-mode: difference;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+
+      /* Album art enhancements */
+      [data-display-container="true"][data-display-style="liquid-glass"] .album-art {
+        border-radius: 20px;
+        box-shadow:
+          0 20px 40px rgba(0, 0, 0, 0.2),
+          0 0 0 1px rgba(255, 255, 255, 0.2);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      [data-display-container="true"][data-display-style="liquid-glass"] .album-art:hover {
+        transform: scale(1.02) translateY(-4px);
+        box-shadow:
+          0 25px 50px rgba(0, 0, 0, 0.25),
+          0 0 0 1px rgba(255, 255, 255, 0.3);
+      }
+
+      /* Smooth animations for all elements */
+      [data-display-container="true"][data-display-style="liquid-glass"] * {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* Playing indicator with glass effect */
+      [data-display-container="true"][data-display-style="liquid-glass"] .playing-indicator {
+        background: rgba(34, 197, 94, 0.8);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+      }
+    `
   },
   {
     id: 'spotify-classic',

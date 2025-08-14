@@ -14,16 +14,17 @@ export default function Navigation() {
   const [showNav, setShowNav] = useState(true)
   const [isHoveringTop, setIsHoveringTop] = useState(false)
   const pathname = usePathname()
+  const forceShowNav = true // Keep nav visible while banner is needed
 
   // Check if we're on a display page
   const isDisplayPage = pathname?.startsWith('/display/')
 
   // Auto-hide navigation after 10 seconds, but show on hover
   useEffect(() => {
+    if (forceShowNav) return
     const timer = setTimeout(() => {
       setShowNav(false)
-    }, 10000) // 10 seconds
-
+    }, 10000)
     return () => clearTimeout(timer)
   }, [])
 
@@ -31,7 +32,9 @@ export default function Navigation() {
   useEffect(() => {
     let hideTimer: NodeJS.Timeout
 
-    if (!isHoveringTop) {
+  if (forceShowNav) return () => {}
+
+  if (!isHoveringTop) {
       // Start 5-second timer when cursor leaves hover area
       hideTimer = setTimeout(() => {
         setShowNav(false)
@@ -59,7 +62,7 @@ export default function Navigation() {
         />
 
         <nav className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 backdrop-blur-md border rounded-2xl shadow-xl shadow-black/10 transition-all duration-500 ease-out ${
-          showNav || isHoveringTop ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0'
+          forceShowNav || showNav || isHoveringTop ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0'
         } ${isDisplayPage
           ? 'bg-black/95 border-gray-700/50'
           : 'bg-background/95 border-border/50'
@@ -72,6 +75,20 @@ export default function Navigation() {
             <div className="w-20 h-8 bg-muted/50 animate-pulse rounded ml-6" />
           </div>
         </nav>
+
+        {/* Separate banner under the nav */}
+        <div className="fixed left-1/2 -translate-x-1/2 z-50 top-20">
+          <div className={`${isDisplayPage ? 'bg-yellow-500/10 text-yellow-200 border border-yellow-500/25' : 'bg-amber-50 text-amber-900 border border-amber-200'} px-3 py-2 rounded-xl shadow-sm backdrop-blur-md`}>
+            <p className="text-[11px] sm:text-xs text-center">
+              Spotify's Web API quota has made this tool/app unusable. Lawson is actively trying to get the app up and running. Sorry for the inconvenience.
+              {' '}
+              <a href="https://www.reddit.com/r/truespotify/comments/1l2am4i/spotify_just_killed_indie_development_with_their/" target="_blank" rel="noopener noreferrer" className={`${isDisplayPage ? 'text-yellow-300 hover:text-yellow-200' : 'text-amber-800 underline hover:text-amber-900'} font-medium ml-1`}>Read more</a>
+              {' '}•{' '}
+              <span>Alternative (with downsides): </span>
+              <a href="https://github.com/oyuh/streamthing" target="_blank" rel="noopener noreferrer" className={`${isDisplayPage ? 'text-yellow-300 hover:text-yellow-200' : 'text-amber-800 underline hover:text-amber-900'} font-medium`}>StreamThing</a>
+            </p>
+          </div>
+        </div>
       </>
     )
   }
@@ -86,7 +103,7 @@ export default function Navigation() {
       />
 
       <nav className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 backdrop-blur-md border rounded-2xl shadow-xl shadow-black/10 transition-all duration-500 ease-out ${
-        showNav || isHoveringTop ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0'
+        forceShowNav || showNav || isHoveringTop ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0'
       } ${isDisplayPage
         ? 'bg-black/95 border-gray-700/50'
         : 'bg-background/95 border-border/50'
@@ -180,6 +197,20 @@ export default function Navigation() {
         </div>
         </div>
       </nav>
+
+      {/* Separate banner under the nav */}
+      <div className="fixed left-1/2 -translate-x-1/2 z-50 top-20">
+        <div className={`${isDisplayPage ? 'bg-yellow-500/10 text-yellow-200 border border-yellow-500/25' : 'bg-amber-50 text-amber-900 border border-amber-200'} px-3 py-2 rounded-xl shadow-sm backdrop-blur-md`}>
+          <p className="text-[11px] sm:text-xs text-center">
+            Spotify's Web API quota has made this tool/app unusable. Lawson is actively trying to get the app up and running. Sorry for the inconvenience.
+            {' '}
+            <a href="https://www.reddit.com/r/truespotify/comments/1l2am4i/spotify_just_killed_indie_development_with_their/" target="_blank" rel="noopener noreferrer" className={`${isDisplayPage ? 'text-yellow-300 hover:text-yellow-200' : 'text-amber-800 underline hover:text-amber-900'} font-medium ml-1`}>Read more</a>
+            {' '}•{' '}
+            <span>Alternative (with downsides): </span>
+            <a href="https://github.com/oyuh/streamthing" target="_blank" rel="noopener noreferrer" className={`${isDisplayPage ? 'text-yellow-300 hover:text-yellow-200' : 'text-amber-800 underline hover:text-amber-900'} font-medium`}>StreamThing</a>
+          </p>
+        </div>
+      </div>
     </>
   )
 }

@@ -213,6 +213,9 @@ export default function Navigation() {
               {' '}•{' '}
               <span>Alternative (with downsides): </span>
               <a href="https://github.com/oyuh/streamthing" target="_blank" rel="noopener noreferrer" className={`${isDisplayPage ? 'text-yellow-300 hover:text-yellow-200' : 'text-amber-800 underline hover:text-amber-900'} font-medium`}>StreamThing</a>
+              {' '}or{' '}
+              <span>The faster/easier version of this</span>
+              <a href="https://fast.jamlog.lol" target="_blank" rel="noopener noreferrer" className={`${isDisplayPage ? 'text-yellow-300 hover:text-yellow-200' : 'text-amber-800 underline hover:text-amber-900'} font-medium`}>fast.jamlog.lol</a>
             </p>
           </div>
         </div>

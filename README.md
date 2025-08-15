@@ -80,7 +80,6 @@ Open [http://localhost:3000](http://localhost:3000) to start developing.
 ## 📡 API Reference
 
 ### Public Endpoints
-- `GET /api/public/display/[slug]` - Public display data by custom slug
 - `GET /api/display/[spotifyId]` - Display data by Spotify ID
 - `GET /display/[identifier]` - Public display page
 

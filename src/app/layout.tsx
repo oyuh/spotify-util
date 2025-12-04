@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Playfair_Display, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
@@ -32,6 +32,9 @@ export const metadata: Metadata = {
   icons: [
     { rel: 'icon', url: '/spotify-favicon.svg', type: 'image/svg+xml' },
   ],
+};
+
+export const viewport: Viewport = {
   themeColor: '#1DB954',
 };
 

@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 
 const nextConfig: NextConfig = {
+    experimental: {
+        allowedDevOrigins: ["localhost:3000", "127.0.0.1:3000"],
+    },
     typescript: {
         // !! WARN !!
         // Ignoring build errors is dangerous, but we need this as a temporary workaround

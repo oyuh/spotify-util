@@ -3,7 +3,7 @@
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Settings, LogIn, LogOut, Music, Palette } from 'lucide-react'
+import { Settings, LogIn, LogOut, Music, Palette, X } from 'lucide-react'
 import SettingsModal from '@/components/SettingsModal'
 import AppThemeSelector from '@/components/AppThemeSelector'
 import Link from 'next/link'
@@ -12,6 +12,7 @@ import { usePathname } from 'next/navigation'
 export default function Navigation() {
   const { data: session, status } = useSession()
   const [showNav, setShowNav] = useState(true)
+  const [showBanner, setShowBanner] = useState(true)
   const [isHoveringTop, setIsHoveringTop] = useState(false)
   const pathname = usePathname()
   const forceShowNav = true // Keep nav visible while banner is needed
@@ -79,9 +80,9 @@ export default function Navigation() {
         </nav>
 
         {/* Separate banner under the nav (hidden on stream pages) */}
-        {!isStreamPage && (
+        {!isStreamPage && showBanner && (
           <div className="fixed left-1/2 -translate-x-1/2 z-50 top-20">
-            <div className={`${isDisplayPage ? 'bg-yellow-500/10 text-yellow-200 border border-yellow-500/25' : 'bg-amber-50 text-amber-900 border border-amber-200'} px-3 py-2 rounded-xl shadow-sm backdrop-blur-md`}>
+            <div className={`${isDisplayPage ? 'bg-yellow-500/10 text-yellow-200 border border-yellow-500/25' : 'bg-amber-50 text-amber-900 border border-amber-200'} px-3 py-2 rounded-xl shadow-sm backdrop-blur-md flex items-center gap-2`}>
               <p className="text-[11px] sm:text-xs text-center">
                 Spotify's Web API quota has made this tool/app unusable. Lawson is actively trying to get the app up and running. Sorry for the inconvenience.
                 {' '}
@@ -90,6 +91,10 @@ export default function Navigation() {
                 <span>Alternative (with downsides): </span>
                 <a href="https://github.com/oyuh/streamthing" target="_blank" rel="noopener noreferrer" className={`${isDisplayPage ? 'text-yellow-300 hover:text-yellow-200' : 'text-amber-800 underline hover:text-amber-900'} font-medium`}>StreamThing</a>
               </p>
+              <button onClick={() => setShowBanner(false)} className={`hover:opacity-70 transition-opacity ${isDisplayPage ? 'text-yellow-200' : 'text-amber-900'}`}>
+                <X className="h-3 w-3" />
+                <span className="sr-only">Close banner</span>
+              </button>
             </div>
           </div>
         )}
@@ -203,9 +208,9 @@ export default function Navigation() {
       </nav>
 
       {/* Separate banner under the nav (hidden on stream pages) */}
-      {!isStreamPage && (
+      {!isStreamPage && showBanner && (
         <div className="fixed left-1/2 -translate-x-1/2 z-50 top-20">
-          <div className={`${isDisplayPage ? 'bg-yellow-500/10 text-yellow-200 border border-yellow-500/25' : 'bg-amber-50 text-amber-900 border border-amber-200'} px-3 py-2 rounded-xl shadow-sm backdrop-blur-md`}>
+          <div className={`${isDisplayPage ? 'bg-yellow-500/10 text-yellow-200 border border-yellow-500/25' : 'bg-amber-50 text-amber-900 border border-amber-200'} px-3 py-2 rounded-xl shadow-sm backdrop-blur-md flex items-center gap-2`}>
             <p className="text-[11px] sm:text-xs text-center">
               Spotify's Web API quota has made this tool/app unusable. Lawson is actively trying to get the app up and running. Sorry for the inconvenience.
               {' '}
@@ -217,6 +222,10 @@ export default function Navigation() {
               <span>The faster/easier version of this</span>
               <a href="https://fast.jamlog.lol" target="_blank" rel="noopener noreferrer" className={`${isDisplayPage ? 'text-yellow-300 hover:text-yellow-200' : 'text-amber-800 underline hover:text-amber-900'} font-medium`}>fast.jamlog.lol</a>
             </p>
+            <button onClick={() => setShowBanner(false)} className={`hover:opacity-70 transition-opacity ${isDisplayPage ? 'text-yellow-200' : 'text-amber-900'}`}>
+              <X className="h-3 w-3" />
+              <span className="sr-only">Close banner</span>
+            </button>
           </div>
         </div>
       )}

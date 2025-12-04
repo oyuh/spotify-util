@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Users, Shield, Database, Trash2, Lock, Unlock, RefreshCw, Search, Settings, BarChart3, AlertCircle, CheckCircle, XCircle, Play } from 'lucide-react'
+import { Users, Shield, Database, Trash2, Lock, Unlock, RefreshCw, Search, Settings, BarChart3, AlertCircle, CheckCircle, XCircle, Play, Link2, Image } from 'lucide-react'
 
 // Duplicate Manager Component
 function DuplicateManager() {
@@ -178,14 +178,14 @@ function DuplicateManager() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Current Session</Label>
-                  <div className="text-sm bg-gray-50 p-2 rounded">
+                  <div className="text-sm bg-muted p-2 rounded mt-1">
                     <div>User ID: {duplicates.currentSession.userId}</div>
                     <div>Spotify ID: {duplicates.currentSession.spotifyId}</div>
                   </div>
                 </div>
                 <div>
                   <Label>Account Info</Label>
-                  <div className="text-sm bg-gray-50 p-2 rounded">
+                  <div className="text-sm bg-muted p-2 rounded mt-1">
                     {duplicates.account ? (
                       <>
                         <div>Provider: {duplicates.account.provider}</div>
@@ -206,7 +206,7 @@ function DuplicateManager() {
               </div>
 
               {duplicates.userPreferences.map((pref: any, index: number) => (
-                <Card key={pref._id} className={`${pref.isCurrentUser ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
+                <Card key={pref._id} className={`${pref.isCurrentUser ? 'border-green-500/50 bg-green-500/10' : 'border-border'}`}>
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
@@ -394,6 +394,8 @@ interface UserPreferences {
 export default function AdminPanel() {
   const [users, setUsers] = useState<User[]>([])
   const [stats, setStats] = useState<SystemStats | null>(null)
+  const [customSlugs, setCustomSlugs] = useState<any[]>([])
+  const [backgroundImages, setBackgroundImages] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -411,7 +413,33 @@ export default function AdminPanel() {
     }
     loadStats()
     loadUsers()
+    loadCustomSlugs()
+    loadBackgroundImages()
   }, [])
+
+  const loadCustomSlugs = async () => {
+    try {
+      const response = await fetch('/api/dev/admin/system?action=custom-slugs')
+      const data = await response.json()
+      if (data.success) {
+        setCustomSlugs(data.data)
+      }
+    } catch (err) {
+      console.error('Failed to load custom slugs:', err)
+    }
+  }
+
+  const loadBackgroundImages = async () => {
+    try {
+      const response = await fetch('/api/dev/admin/system?action=background-images')
+      const data = await response.json()
+      if (data.success) {
+        setBackgroundImages(data.data)
+      }
+    } catch (err) {
+      console.error('Failed to load background images:', err)
+    }
+  }
 
   const loadUsers = async (page = 1, search = '') => {
     setLoading(true)
@@ -619,6 +647,14 @@ export default function AdminPanel() {
           <TabsTrigger value="system" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
             System
+          </TabsTrigger>
+          <TabsTrigger value="custom-slugs" className="flex items-center gap-2">
+            <Link2 className="h-4 w-4" />
+            Custom Slugs
+          </TabsTrigger>
+          <TabsTrigger value="backgrounds" className="flex items-center gap-2">
+            <Image className="h-4 w-4" />
+            Backgrounds
           </TabsTrigger>
         </TabsList>
 
@@ -978,6 +1014,78 @@ export default function AdminPanel() {
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh All Data
               </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="custom-slugs" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Custom Slugs ({customSlugs.length})</CardTitle>
+              <CardDescription>Users with custom profile URLs</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {customSlugs.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 border rounded">
+                    <div>
+                      <div className="font-medium text-lg">{item.slug}</div>
+                      <div className="text-sm text-muted-foreground">
+                        User: {item.userName} ({item.userEmail})
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Updated: {new Date(item.updatedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))}
+                {customSlugs.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">No custom slugs found</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="backgrounds" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Background Images ({backgroundImages.length})</CardTitle>
+              <CardDescription>Users with custom background images</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {backgroundImages.map((item, i) => (
+                  <Card key={i} className="overflow-hidden">
+                    <div className="aspect-video relative bg-muted">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img 
+                        src={item.backgroundImage} 
+                        alt={`Background for ${item.userName}`}
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                    <CardContent className="p-4">
+                      <div className="font-medium truncate">{item.userName}</div>
+                      <div className="text-xs text-muted-foreground truncate">{item.userEmail}</div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        Updated: {new Date(item.updatedAt).toLocaleDateString()}
+                      </div>
+                      <a 
+                        href={item.backgroundImage} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline mt-2 block"
+                      >
+                        View Full Image
+                      </a>
+                    </CardContent>
+                  </Card>
+                ))}
+                {backgroundImages.length === 0 && (
+                  <div className="col-span-full text-center py-8 text-muted-foreground">No background images found</div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

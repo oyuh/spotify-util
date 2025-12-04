@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/db'
+import { ObjectId } from 'mongodb'
 
 // DEV ONLY: System admin operations
 export async function GET(request: NextRequest) {
@@ -32,11 +33,11 @@ export async function GET(request: NextRequest) {
         db.collection('users').countDocuments({ isActive: { $ne: false } }),
         db.collection('users').countDocuments({ isLocked: true }),
         db.collection('accounts').countDocuments({}),
-        db.collection('preferences').countDocuments({}),
-        db.collection('preferences').countDocuments({ 'privacySettings.isPublic': true }),
-        db.collection('preferences').countDocuments({ 'privacySettings.isPublic': false }),
-        db.collection('preferences').countDocuments({ 'privacySettings.customSlug': { $exists: true, $ne: null } }),
-        db.collection('preferences').countDocuments({ 'displaySettings.backgroundImage': { $exists: true, $ne: null } }),
+        db.collection('user_preferences').countDocuments({}),
+        db.collection('user_preferences').countDocuments({ 'privacySettings.isPublic': true }),
+        db.collection('user_preferences').countDocuments({ 'privacySettings.isPublic': false }),
+        db.collection('user_preferences').countDocuments({ 'privacySettings.customSlug': { $exists: true, $ne: null, $nin: [""] } }),
+        db.collection('user_preferences').countDocuments({ 'displaySettings.backgroundImage': { $exists: true, $ne: null, $nin: [""] } }),
         db.collection('users').find({}).sort({ createdAt: -1 }).limit(5).toArray()
       ])
 
@@ -70,9 +71,63 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    if (action === 'custom-slugs') {
+      const preferences = await db.collection('user_preferences')
+        .find({ 'privacySettings.customSlug': { $exists: true, $ne: null, $nin: [""] } })
+        .toArray()
+
+      // Enrich with user details
+      const enrichedPrefs = await Promise.all(preferences.map(async (pref) => {
+        let user = null
+        try {
+          user = await db.collection('users').findOne({ _id: new ObjectId(pref.userId) })
+        } catch (e) {
+          // Try finding by string ID if ObjectId fails
+          user = await db.collection('users').findOne({ _id: pref.userId as any })
+        }
+        
+        return {
+          userId: pref.userId,
+          userName: user?.name || 'Unknown',
+          userEmail: user?.email || 'Unknown',
+          slug: pref.privacySettings.customSlug,
+          updatedAt: pref.updatedAt
+        }
+      }))
+
+      return NextResponse.json({ success: true, data: enrichedPrefs })
+    }
+
+    if (action === 'background-images') {
+      const preferences = await db.collection('user_preferences')
+        .find({ 'displaySettings.backgroundImage': { $exists: true, $ne: null, $nin: [""] } })
+        .toArray()
+
+      // Enrich with user details
+      const enrichedPrefs = await Promise.all(preferences.map(async (pref) => {
+        let user = null
+        try {
+          user = await db.collection('users').findOne({ _id: new ObjectId(pref.userId) })
+        } catch (e) {
+          // Try finding by string ID if ObjectId fails
+          user = await db.collection('users').findOne({ _id: pref.userId as any })
+        }
+
+        return {
+          userId: pref.userId,
+          userName: user?.name || 'Unknown',
+          userEmail: user?.email || 'Unknown',
+          backgroundImage: pref.displaySettings.backgroundImage,
+          updatedAt: pref.updatedAt
+        }
+      }))
+
+      return NextResponse.json({ success: true, data: enrichedPrefs })
+    }
+
     if (action === 'health') {
       // Check database health
-      const collections = ['users', 'accounts', 'preferences', 'sessions']
+      const collections = ['users', 'accounts', 'user_preferences', 'sessions']
       const health: Record<string, any> = {}
 
       for (const collection of collections) {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { NextRequest } from "next/server"
-import { isProductionBlockedRoute, getClientIP, rateLimit, SECURITY_CONFIG, logSecurityEvent } from '@/lib/security'
+import { isProductionBlockedRoute, getClientIP, rateLimit, SECURITY_CONFIG, logSecurityEvent } from '@/lib/security-edge'
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
@@ -19,14 +19,6 @@ export function middleware(request: NextRequest) {
   response.headers.set('X-XSS-Protection', '1; mode=block')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
-  response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-
-  // HTTPS redirect in production
-  if (process.env.NODE_ENV === 'production' && request.nextUrl.protocol === 'http:') {
-    const httpsUrl = request.nextUrl.clone()
-    httpsUrl.protocol = 'https:'
-    return NextResponse.redirect(httpsUrl, 301)
-  }
 
   // Block development/debug routes in production
   if (isProductionBlockedRoute(pathname)) {
@@ -40,7 +32,7 @@ export function middleware(request: NextRequest) {
 
     // Different rate limits for different route types
     let rateLimit_applied = false
-    let limit = SECURITY_CONFIG.RATE_LIMITS.RELAXED // Default
+    let limit: { requests: number; windowMs: number } = SECURITY_CONFIG.RATE_LIMITS.RELAXED // Default
 
     // Strict rate limiting for sensitive user operations
     if (pathname.startsWith('/api/user/preferences') ||
@@ -95,8 +87,7 @@ export function middleware(request: NextRequest) {
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",
-        "frame-ancestors 'none'",
-        "upgrade-insecure-requests"
+        "frame-ancestors 'none'"
       ].join('; ')
     )
   }

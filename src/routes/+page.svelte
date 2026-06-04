@@ -80,7 +80,7 @@
         >. Thanks for stopping by.
       </p>
       <p class="mt-3 font-mono-ui text-[11px] text-muted-foreground">
-        © {year} Lawson Hart · made with <3
+        © {year} Lawson Hart · made with ❤︎⁠
       </p>
     </div>
   </div>

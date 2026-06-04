@@ -72,12 +72,12 @@
     <div class="border-t border-border px-6 py-4">
       <p class="font-mono-ui text-[11px] leading-relaxed text-muted-foreground">
         <span class="text-foreground">why is jamlog down?</span>
-        Spotify's developer APIs got weird and the old jamlog relied on it so it was
-        were restricted and the app no longer works the way it was
-        meant to. Rather than duct-tape around it, everything is now at
+        Spotify's developer APIs got weird and the old jamlog relied on it so much to where it was
+        restricted and the app no longer works the way it was
+        meant to. So I've moved my focus over to
         <a href="https://fast.jamlog.lol" class="text-foreground underline underline-offset-2"
           >fast.jamlog.lol</a
-        >. Thanks for stopping by.
+        >which uses Last.fm! Thanks for stopping by.
       </p>
       <p class="mt-3 font-mono-ui text-[11px] text-muted-foreground">
         © {year} Lawson Hart · made with ❤︎⁠

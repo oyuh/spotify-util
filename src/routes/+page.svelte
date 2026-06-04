@@ -25,19 +25,13 @@
     <div class="px-6 py-8 space-y-6">
       <div class="space-y-3">
         <h1 class="font-pixel text-3xl sm:text-4xl leading-tight">
-          this site is paused.
+          jamlog is down.
         </h1>
         <p class="font-mono-ui text-sm leading-relaxed text-muted-foreground">
-          jamlog in its current form is broken and I'm not patching it back up.
-          Spotify keeps moving the goalposts for developers — deprecating
+          jamlog in its current form is broken and I have no real way of fixing it.
+          Spotify broke all community developer projects by deprecating
           endpoints, gating access, and generally making it miserable to build
-          anything fun on their API. It's not worth fighting that here anymore.
-        </p>
-        <p class="font-mono-ui text-sm leading-relaxed text-muted-foreground">
-          All of my focus has moved to
-          <span class="text-foreground">fast.jamlog.lol</span> which is a cleaner,
-          faster, far better project than this ever was. Go check that out
-          instead.
+          anything fun on their API.
         </p>
       </div>
 

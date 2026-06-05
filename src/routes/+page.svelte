@@ -9,12 +9,10 @@
 </svelte:head>
 
 <main class="min-h-dvh w-full flex items-center justify-center px-4 py-10">
-  <div
-    class="w-full max-w-xl rounded-xl border border-border bg-card text-card-foreground shadow-2xl shadow-black/40"
-  >
+  <div class="w-full max-w-xl text-card-foreground">
     <!-- header -->
-    <div class="flex items-center justify-between border-b border-border px-6 py-4">
-      <span class="font-pixel text-lg tracking-tight">jamlog</span>
+    <div class="flex items-center justify-between px-6 py-4">
+      <span class="font-pixel text-lg tracking-tight">jamlog is down</span>
       <span class="inline-flex items-center gap-2 font-mono-ui text-xs text-muted-foreground">
         <span class="size-2 rounded-full bg-destructive animate-pulse"></span>
         offline
@@ -24,9 +22,6 @@
     <!-- body -->
     <div class="px-6 py-8 space-y-6">
       <div class="space-y-3">
-        <h1 class="font-pixel text-3xl sm:text-4xl leading-tight">
-          jamlog is down.
-        </h1>
         <p class="font-mono-ui text-sm leading-relaxed text-muted-foreground">
           jamlog in its current form is broken and I have no real way of fixing it.
           Spotify broke all community developer projects by deprecating
@@ -63,15 +58,13 @@
     </div>
 
     <!-- footer -->
-    <div class="border-t border-border px-6 py-4">
+    <div class="px-6 py-4">
       <p class="font-mono-ui text-[11px] leading-relaxed text-muted-foreground">
-        <span class="text-foreground">why is jamlog down?</span>
-        Spotify's developer APIs got weird and the old jamlog relied on it so much to where it was
-        restricted and the app no longer works the way it was
-        meant to. So I've moved my focus over to
+        <span class="text-foreground">any alternative?</span>
+        yep! I've moved my focus over to
         <a href="https://fast.jamlog.lol" class="text-foreground underline underline-offset-2"
           >fast.jamlog.lol</a
-        >which uses Last.fm! Thanks for stopping by.
+        > which uses Last.fm! Thanks for stopping by.
       </p>
       <p class="mt-3 font-mono-ui text-[11px] text-muted-foreground">
         © {year} Lawson Hart · made with ❤︎⁠
